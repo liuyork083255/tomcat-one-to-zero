@@ -143,6 +143,11 @@ import org.apache.tomcat.util.res.StringManager;
  *
  * @see <a href="https://svn.apache.org/repos/asf/tomcat/trunk/test/org/apache/catalina/startup/TestTomcat.java">TestTomcat</a>
  * @author Costin Manolache
+ *
+ * otz:
+ *  Tomcat 可以将 tomcat 服务器嵌入到用户应用程序中并进行启动
+ *  spring-boot 采用这个类启动
+ *
  */
 public class Tomcat {
 

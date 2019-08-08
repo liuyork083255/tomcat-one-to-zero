@@ -46,6 +46,14 @@ import org.apache.juli.logging.LogFactory;
  *
  * @author Craig R. McClanahan
  * @author Remy Maucherat
+ *
+ * otz:
+ *  tomcat 提供 Bootstrap 作为应用服务器启动入口，Bootstrap 负责创建 catalina 实例，
+ *  根据执行参数调用 catalina 相关方法完成针对应用服务器的操作（启动、停止）
+ *
+ * tomcat 本身核心是 server 以及子组件，所以启动可以不依赖 Bootstrap 和 Catalina，tomcat 提供了同名类 {@link Tomcat}
+ * spring-boot 就是采用这个方式启动的
+ *
  */
 public final class Bootstrap {
 
@@ -104,8 +112,7 @@ public final class Bootstrap {
         }
 
         catalinaHomeFile = homeFile;
-        System.setProperty(
-                Globals.CATALINA_HOME_PROP, catalinaHomeFile.getPath());
+        System.setProperty(Globals.CATALINA_HOME_PROP, catalinaHomeFile.getPath());
 
         // Then base
         String base = System.getProperty(Globals.CATALINA_BASE_PROP);
@@ -120,8 +127,7 @@ public final class Bootstrap {
             }
             catalinaBaseFile = baseFile;
         }
-        System.setProperty(
-                Globals.CATALINA_BASE_PROP, catalinaBaseFile.getPath());
+        System.setProperty(Globals.CATALINA_BASE_PROP, catalinaBaseFile.getPath());
     }
 
     // -------------------------------------------------------------- Variables
@@ -274,8 +280,7 @@ public final class Bootstrap {
         paramTypes[0] = Class.forName("java.lang.ClassLoader");
         Object paramValues[] = new Object[1];
         paramValues[0] = sharedLoader;
-        Method method =
-            startupInstance.getClass().getMethod(methodName, paramTypes);
+        Method method = startupInstance.getClass().getMethod(methodName, paramTypes);
         method.invoke(startupInstance, paramValues);
 
         catalinaDaemon = startupInstance;
