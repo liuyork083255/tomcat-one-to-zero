@@ -54,6 +54,12 @@ import org.apache.tomcat.util.threads.ThreadPoolExecutor;
  *
  * @author Mladen Turk
  * @author Remy Maucherat
+ *
+ * otz:
+ *  属于 connector 部分
+ *  1 启动 socket 服务
+ *  2 监听端口
+ * 当接入请求后会调用 Processor 解析请求
  */
 public abstract class AbstractEndpoint<S> {
 

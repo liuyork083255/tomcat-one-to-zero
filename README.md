@@ -4,11 +4,11 @@
 
 2 直接将 tomcat 的两个核心包 javax 和 org.apache 拷贝过来，然后进行编译，肯定会报一堆错； 
 
-3 根据错误提示将依赖全部以 maven 方式全部导入；  
+3 根据错误提示将依赖全部以 maven 方式导入；  
 
 4 导入后重新编译，通过  
 
-依赖导入以下包即可
+依赖导入以下包即可（tomcat-8.x版本）
 ```xml
     <!-- https://mvnrepository.com/artifact/org.apache.ant/ant -->
     <dependency>

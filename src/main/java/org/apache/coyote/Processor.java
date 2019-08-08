@@ -26,6 +26,13 @@ import org.apache.tomcat.util.net.SocketWrapperBase;
 
 /**
  * Common interface for processors of all protocols.
+ *
+ * otz:
+ *  属于 connector 部分，请求接入后首先到 Endpoint 组件，然后就会调用 Processor
+ *  Processor 主要根据自己具体实现的协议来解析请求，然后映射到后面对应的 container
+ *
+ *  Processor 如何映射到 container？ -> {@link org.apache.catalina.mapper.Mapper}
+ *
  */
 public interface Processor {
 

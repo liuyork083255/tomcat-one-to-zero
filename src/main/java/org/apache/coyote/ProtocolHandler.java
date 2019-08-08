@@ -32,6 +32,16 @@ import org.apache.tomcat.util.net.SSLHostConfig;
  * @author Remy Maucherat
  * @author Costin Manolache
  * @see Adapter
+ *
+ * otz:
+ *  tomcat 架构中整体分为 connector 和 container
+ *
+ *  ProtocolHandler 表示一个协议处理器 Protocol，主要由 Endpoint 和 Processor 组成，属于 connector
+ *  比如要启动一个 http/2 的web服务，ProtocolHandler 就是一个 {@link org.apache.coyote.http11.Http11Nio2Protocol}
+ *  Endpoint： 用于启动 socket 服务和监听端口 {@link org.apache.tomcat.util.net.AbstractEndpoint}
+ *  Processor：用于处理接收到的请求 {@link Processor}
+ *             主要内工作就是按照请求地址映射到具体的容器 container 中，该过程是:请求映射
+ *
  */
 public interface ProtocolHandler {
 

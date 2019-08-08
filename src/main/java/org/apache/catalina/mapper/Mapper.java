@@ -43,6 +43,17 @@ import org.apache.tomcat.util.res.StringManager;
  * from the HTTP rules).
  *
  * @author Remy Maucherat
+ *
+ * otz:
+ *  首先需要知道，Processor 组件功能是处理请求然后映射到 container 中
+ *  那么 Mapper 就是完成+维护这个映射关系的
+ *  具体的是 Mapper 和 MapperListener 结合完成
+ *  Mapper：用于维护 container 容器映射信息的，同时按照映射规则（Servlet规范定义）查找容器
+ *  MapperListener：我们知道，容器各大组件的状态都会变化，而 MapperListener 就是来监听容器的变化，实时更新 Mapper 映射信息
+ *
+ * 在 tomcat7 及之前，Mapper 有 connector 维护，而在 tomcat8 中，改由 service 维护
+ * 因为 service 本来就是用于维护 connector 和 container 的组合
+ * 一个 server 可以包含多个 service
  */
 public final class Mapper {
 
