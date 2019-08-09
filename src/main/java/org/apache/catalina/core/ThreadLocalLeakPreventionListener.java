@@ -51,6 +51,10 @@ import org.apache.tomcat.util.threads.ThreadPoolExecutor;
  *
  * This listener must be declared in server.xml to be active.
  *
+ * otz:
+ *  server 5 个监听器之一
+ *  用于在 context 停止是重建 executor 池终中的线程，避免导致内存泄漏
+ *
  */
 public class ThreadLocalLeakPreventionListener implements LifecycleListener,
         ContainerListener {

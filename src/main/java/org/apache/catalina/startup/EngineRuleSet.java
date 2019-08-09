@@ -30,6 +30,10 @@ import org.apache.tomcat.util.digester.RuleSetBase;
  * <code>HostRuleSet</code>.</p>
  *
  * @author Craig R. McClanahan
+ *
+ * otz:
+ *  engine 解析类
+ *
  */
 @SuppressWarnings("deprecation")
 public class EngineRuleSet extends RuleSetBase {

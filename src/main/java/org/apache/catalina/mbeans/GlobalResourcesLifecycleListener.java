@@ -46,6 +46,11 @@ import org.apache.tomcat.util.modeler.Registry;
  *
  * @author Craig R. McClanahan
  * @since 4.1
+ *
+ * otz:
+ *  server 5 个监听器之一
+ *  在 server 启动是，将 JNDI 资源注册为 MBean 进行管理
+ *
  */
 public class GlobalResourcesLifecycleListener implements LifecycleListener {
 

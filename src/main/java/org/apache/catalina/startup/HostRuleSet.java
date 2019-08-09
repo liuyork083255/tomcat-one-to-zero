@@ -30,6 +30,10 @@ import org.apache.tomcat.util.digester.RuleSetBase;
  * <code>ContextRuleSet</code>.</p>
  *
  * @author Craig R. McClanahan
+ *
+ * otz:
+ *  host 解析过程
+ *
  */
 @SuppressWarnings("deprecation")
 public class HostRuleSet extends RuleSetBase {

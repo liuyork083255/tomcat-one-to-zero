@@ -34,6 +34,10 @@ import org.apache.tomcat.util.res.StringManager;
  * management and lifecycle support.
  *
  * @author Craig R. McClanahan
+ *
+ * otz:
+ *  四大容器默认类和用户自定义的 Valve 需要继承的抽象类
+ *
  */
 public abstract class ValveBase extends LifecycleMBeanBase implements Contained, Valve {
 

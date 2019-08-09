@@ -60,6 +60,10 @@ import org.apache.tomcat.util.res.StringManager;
  *
  * @author Craig R. McClanahan
  * @author Remy Maucherat
+ *
+ * otz:
+ *  CoyoteAdapter 主要是将 connector 与 mapper 、 container 联系起来
+ *
  */
 public class CoyoteAdapter implements Adapter {
 
@@ -295,7 +299,29 @@ public class CoyoteAdapter implements Adapter {
         return success;
     }
 
-
+    /**
+     * 1 根据 connector 的请求和响应对象创建 servlet 请求和响应
+     *   org.apache.coyote.Request -> org.apache.catalina.connector.Request
+     *   org.apache.coyote.Response -> org.apache.catalina.connector.Response
+     *
+     * 2 转换请求参数并完成请求映射
+     *   · 请求 URI 解码，初始化请求的路径参数
+     *   · 检测 URI 是否合法，非法响应 400
+     *   · 请求映射，类型为 {@link org.apache.catalina.mapper.MappingData}，请求映射处理最终会根据 URI 定位到一个有效的 Wrapper
+     *   · 如果映射器结果 MappingData 的 redirectPath 不为空，说明是重定向请求，则调用 {@link Response#sendRedirect}发送重定向并结束
+     *   · 执行连接器的认证及授权
+     *
+     * 3 得到当前 engine 的第一个 valve 并执行，已完成客户端请求处理
+     *
+     * 4 如果为异步请求
+     *   获得请求读取的事件监听器 {@link ReadListener}
+     *   如果请求读取已经结束，触发 {@link ReadListener#onAllDataRead()}
+     *
+     * 5 如果为同步请求
+     *   flush 并关闭请求输入流
+     *   flush 并关闭响应输出流
+     *
+     */
     @Override
     public void service(org.apache.coyote.Request req, org.apache.coyote.Response res)
             throws Exception {
@@ -303,8 +329,11 @@ public class CoyoteAdapter implements Adapter {
         Request request = (Request) req.getNote(ADAPTER_NOTES);
         Response response = (Response) res.getNote(ADAPTER_NOTES);
 
+        /* 一般不会进入该分支 */
         if (request == null) {
-            // Create objects
+            /*
+            * 如果 request 为空，则重新创建
+            * */
             request = connector.createRequest();
             request.setCoyoteRequest(req);
             response = connector.createResponse();
@@ -337,12 +366,22 @@ public class CoyoteAdapter implements Adapter {
             postParseSuccess = postParseRequest(req, request, res, response);
             if (postParseSuccess) {
                 //check valves if we support async
-                request.setAsyncSupported(
-                        connector.getService().getContainer().getPipeline().isAsyncSupported());
+                /**
+                 * 检查是否支持异步请求，
+                 */
+                request.setAsyncSupported(connector.getService().getContainer().getPipeline().isAsyncSupported());
                 // Calling the container
-                connector.getService().getContainer().getPipeline().getFirst().invoke(
-                        request, response);
+                /**
+                 * 这里是调用真正的 servlet 处理业务逻辑
+                 *  getService() 返回 {@link org.apache.catalina.core.StandardServer}
+                 *  getContainer() 返回 {@link org.apache.catalina.core.StandardEngine}
+                 *  getPipeline() 返回 {@link org.apache.catalina.core.StandardPipeline}
+                 *  getFirst() 返回 {@link org.apache.catalina.core.StandardEngineValve}
+                 */
+                connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
             }
+
+            /* 异步请求处理 */
             if (request.isAsync()) {
                 async = true;
                 ReadListener readListener = req.getReadListener();
@@ -360,8 +399,7 @@ public class CoyoteAdapter implements Adapter {
                     }
                 }
 
-                Throwable throwable =
-                        (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
+                Throwable throwable = (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
 
                 // If an async request was started, is not going to end once
                 // this container thread finishes and an error occurred, trigger
@@ -370,6 +408,7 @@ public class CoyoteAdapter implements Adapter {
                     request.getAsyncContextInternal().setErrorState(throwable, true);
                 }
             } else {
+                /* 如果为同步请求则直接则直接 flush 并关闭输入|输出流 */
                 request.finishRequest();
                 response.finishResponse();
             }
@@ -448,30 +487,30 @@ public class CoyoteAdapter implements Adapter {
 
 
     @Override
-    public void log(org.apache.coyote.Request req,
-            org.apache.coyote.Response res, long time) {
+    public void log(org.apache.coyote.Request req, org.apache.coyote.Response res, long time) {
 
         Request request = (Request) req.getNote(ADAPTER_NOTES);
         Response response = (Response) res.getNote(ADAPTER_NOTES);
 
-        if (request == null) {
-            // Create objects
-            request = connector.createRequest();
-            request.setCoyoteRequest(req);
-            response = connector.createResponse();
-            response.setCoyoteResponse(res);
-
-            // Link objects
-            request.setResponse(response);
-            response.setRequest(request);
-
-            // Set as notes
-            req.setNote(ADAPTER_NOTES, request);
-            res.setNote(ADAPTER_NOTES, response);
-
-            // Set query string encoding
-            req.getParameters().setQueryStringCharset(connector.getURICharset());
-        }
+        /* 消除重复警告 */
+//        if (request == null) {
+//            // Create objects
+//            request = connector.createRequest();
+//            request.setCoyoteRequest(req);
+//            response = connector.createResponse();
+//            response.setCoyoteResponse(res);
+//
+//            // Link objects
+//            request.setResponse(response);
+//            response.setRequest(request);
+//
+//            // Set as notes
+//            req.setNote(ADAPTER_NOTES, request);
+//            res.setNote(ADAPTER_NOTES, response);
+//
+//            // Set query string encoding
+//            req.getParameters().setQueryStringCharset(connector.getURICharset());
+//        }
 
         try {
             // Log at the lowest level available. logAccess() will be
@@ -692,8 +731,7 @@ public class CoyoteAdapter implements Adapter {
 
         while (mapRequired) {
             // This will map the the latest version by default
-            connector.getService().getMapper().map(serverName, decodedURI,
-                    version, request.getMappingData());
+            connector.getService().getMapper().map(serverName, decodedURI, version, request.getMappingData());
 
             // If there is no context at this point, either this is a 404
             // because no ROOT context has been deployed or the URI was invalid
@@ -713,13 +751,10 @@ public class CoyoteAdapter implements Adapter {
             // (if any). Need to do this before we redirect in case we need to
             // include the session id in the redirect
             String sessionID;
-            if (request.getServletContext().getEffectiveSessionTrackingModes()
-                    .contains(SessionTrackingMode.URL)) {
+            if (request.getServletContext().getEffectiveSessionTrackingModes().contains(SessionTrackingMode.URL)) {
 
                 // Get the session ID if there was one
-                sessionID = request.getPathParameter(
-                        SessionConfig.getSessionUriParamName(
-                                request.getContext()));
+                sessionID = request.getPathParameter(SessionConfig.getSessionUriParamName(request.getContext()));
                 if (sessionID != null) {
                     request.setRequestedSessionId(sessionID);
                     request.setRequestedSessionURL(true);
@@ -793,19 +828,15 @@ public class CoyoteAdapter implements Adapter {
             }
         }
 
-        // Possible redirect
+        /* 判断是否为重定向 */
         MessageBytes redirectPathMB = request.getMappingData().redirectPath;
         if (!redirectPathMB.isNull()) {
-            String redirectPath = URLEncoder.DEFAULT.encode(
-                    redirectPathMB.toString(), StandardCharsets.UTF_8);
+            String redirectPath = URLEncoder.DEFAULT.encode(redirectPathMB.toString(), StandardCharsets.UTF_8);
             String query = request.getQueryString();
             if (request.isRequestedSessionIdFromURL()) {
                 // This is not optimal, but as this is not very common, it
                 // shouldn't matter
-                redirectPath = redirectPath + ";" +
-                        SessionConfig.getSessionUriParamName(
-                            request.getContext()) +
-                    "=" + request.getRequestedSessionId();
+                redirectPath = redirectPath + ";" + SessionConfig.getSessionUriParamName(request.getContext()) + "=" + request.getRequestedSessionId();
             }
             if (query != null) {
                 // This is not optimal, but as this is not very common, it

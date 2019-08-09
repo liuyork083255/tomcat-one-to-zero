@@ -41,9 +41,13 @@ import org.apache.tomcat.util.res.StringManager;
  * and destroy APR.
  *
  * @since 4.1
+ *
+ * otz:
+ *  server 5 个监听器之一
+ *  在 server 初始化之前加载 apr 库，并于 server 停止之后销毁
+ *
  */
-public class AprLifecycleListener
-    implements LifecycleListener {
+public class AprLifecycleListener implements LifecycleListener {
 
     private static final Log log = LogFactory.getLog(AprLifecycleListener.class);
     private static boolean instanceCreated = false;

@@ -63,8 +63,7 @@ public interface Adapter {
      */
     public boolean prepare(Request req, Response res) throws Exception;
 
-    public boolean asyncDispatch(Request req, Response res, SocketEvent status)
-            throws Exception;
+    public boolean asyncDispatch(Request req, Response res, SocketEvent status) throws Exception;
 
     public void log(Request req, Response res, long time);
 

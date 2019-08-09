@@ -35,6 +35,12 @@ import org.apache.tomcat.util.res.StringManager;
  * when processing HTTP requests.
  *
  * @author Craig R. McClanahan
+ *
+ * otz:
+ *  每一类容器 container 都默认有一个 Valve，而用户自定义加入的 Valve 只能添加在这个默认的 Valve 前面
+ *  所以自定义的 Valve 必须保证执行 getNext().invoke(request, response);
+ *  四个容器的默认 Valve 必须要保证调用下一个容器，该流程可以参考 /resources/各容器中Valve执行流程.png
+ *
  */
 final class StandardEngineValve extends ValveBase {
 
@@ -84,6 +90,9 @@ final class StandardEngineValve extends ValveBase {
         }
 
         // Ask this Host to process this request
+        /**
+         * 四个容器中，engine 是第一个，需要保证调用下一个容器:host
+         */
         host.getPipeline().getFirst().invoke(request, response);
 
     }

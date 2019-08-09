@@ -32,6 +32,11 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * Logs version information on startup.
+ *
+ * otz:
+ *  server 5 个监听器之一
+ *  在 server 初始化之前打印操作系统，JVM 以及服务器版本信息
+ *
  */
 public class VersionLoggerListener implements LifecycleListener {
 

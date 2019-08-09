@@ -34,6 +34,7 @@ import org.apache.catalina.connector.Connector;
  *  {@link Executor}
  *      用于表示 tomcat 组件间可以共享的线程池
  *
+ * tomcat 启动严格按照生命周期方法{@link Lifecycle}进行 详见图 /resources/doc/Connector-Ref-Container.png
  *
  */
 public class Main {
