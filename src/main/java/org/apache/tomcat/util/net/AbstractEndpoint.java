@@ -60,7 +60,17 @@ import org.apache.tomcat.util.threads.ThreadPoolExecutor;
  *  1 启动 socket 服务
  *  2 监听端口
  * 当接入请求后会调用 Processor 解析请求
+ *
+ * Endpoint 是 Coyote 通信端点，是具体的 socket 接收处理类，是对传输层的抽象，tomcat 中并没有 Endpoint 接口，而是提供了
+ * 这个抽象类 AbstractEndpoint
+ * tomcat 根据 IO 方式的不同，提供了 NioEndpoint(NIO)、AprEndpoint(APR)、Nio2Endpoint(NIO2) 三个实现
+ * （版本8之前还提供了 JioEndpoint-BIO，只不过在版本8中已被移除）
+ *
+ *
+ *
+ *
  */
+@SuppressWarnings("all")
 public abstract class AbstractEndpoint<S> {
 
     // -------------------------------------------------------------- Constants
@@ -134,11 +144,22 @@ public abstract class AbstractEndpoint<S> {
         UNBOUND, BOUND_ON_INIT, BOUND_ON_START, SOCKET_CLOSED_ON_STOP
     }
 
+    /**
+     * Acceptor 就是客户端 socket 接入的起始点
+     * 真正的实现需要根据协议的不同，所有这里定义抽象类，子类才是具体的实现
+     */
     public abstract static class Acceptor implements Runnable {
+
+        /**
+         * 状态
+         */
         public enum AcceptorState {
             NEW, RUNNING, PAUSED, ENDED
         }
 
+        /**
+         * 标识当前 Acceptor 的状态
+         */
         protected volatile AcceptorState state = AcceptorState.NEW;
         public final AcceptorState getState() {
             return state;
@@ -167,6 +188,13 @@ public abstract class AbstractEndpoint<S> {
 
     /**
      * Running state of the endpoint.
+     *
+     * tomcat 设计 NioEndpoint 的状态可以被主动暂停，这个属性 running 就是用来控制其状态逻辑的
+     * 因为在 NioEndpoint 的 Acceptor 中是一个死循环，所以通过一个属性来判断其状态的改变
+     *
+     * running 只会在开启和停止方法中被改变状态
+     * 比如在 {@link NioEndpoint} 中就是对应的 {@link NioEndpoint#startInternal()} 和 {@link NioEndpoint#stopInternal()}
+     *
      */
     protected volatile boolean running = false;
 
@@ -446,7 +474,14 @@ public abstract class AbstractEndpoint<S> {
     public int getAcceptorThreadPriority() { return acceptorThreadPriority; }
 
 
+    /**
+     * 默认最大并发数 1万
+     */
     private int maxConnections = 10000;
+
+    /**
+     * 自定义并发数
+     */
     public void setMaxConnections(int maxCon) {
         this.maxConnections = maxCon;
         LimitLatch latch = this.connectionLimitLatch;
@@ -745,6 +780,9 @@ public abstract class AbstractEndpoint<S> {
      * The default is true - the created threads will be
      *  in daemon mode. If set to false, the control thread
      *  will not be daemon - and will keep the process alive.
+     *
+     *  默认是 acceptor 线程是守护线程，也就是用户线程退出，则 acceptor 线程退出
+     *  类似 JVM 垃圾清理 GC 线程也是守护线程
      */
     private boolean daemon = true;
     public void setDaemon(boolean b) { daemon = b; }
@@ -1268,6 +1306,10 @@ public abstract class AbstractEndpoint<S> {
 
     protected abstract Log getLog();
 
+    /**
+     * 初始化连接并发控制组件 LimitLatch
+     * spring-boot-web 中并没有设置，而是采用默认值 {@link #maxConnections}
+     */
     protected LimitLatch initializeConnectionLatch() {
         if (maxConnections==-1) return null;
         if (connectionLimitLatch==null) {
@@ -1282,12 +1324,22 @@ public abstract class AbstractEndpoint<S> {
         connectionLimitLatch = null;
     }
 
+    /**
+     * 并发计数器加 1
+     */
     protected void countUpOrAwaitConnection() throws InterruptedException {
+        /* maxConnections 等于 -1，不做限制 */
         if (maxConnections==-1) return;
+
         LimitLatch latch = connectionLimitLatch;
+
+        /* 并发计数器加1，如果超过了阈值，则阻塞等待 */
         if (latch!=null) latch.countUpOrAwait();
     }
 
+    /**
+     * 并发计数器减 1
+     */
     protected long countDownConnection() {
         if (maxConnections==-1) return -1;
         LimitLatch latch = connectionLimitLatch;

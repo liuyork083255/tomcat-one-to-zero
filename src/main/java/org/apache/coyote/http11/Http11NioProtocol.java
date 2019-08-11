@@ -29,6 +29,11 @@ import org.apache.tomcat.util.net.NioEndpoint;
  *
  * @author Remy Maucherat
  * @author Costin Manolache
+ *
+ * otz:
+ *  NIO 方式实现的 HTTP/1.1 协议 protocol
+ *
+ *
  */
 public class Http11NioProtocol extends AbstractHttp11JsseProtocol<NioChannel> {
 

@@ -27,20 +27,34 @@ import org.apache.juli.logging.LogFactory;
  * Shared latch that allows the latch to be acquired a limited number of times
  * after which all subsequent requests to acquire the latch will be placed in a
  * FIFO queue until one of the shares is returned.
+ *
+ * otz:
+ *  用于控制连接数
+ *  tomcat 每接收到一个请求，LimitLatch 计数加 1，请求结束后 LimitLatch 计数减 1
+ *
+ *
  */
 public class LimitLatch {
 
     private static final Log log = LogFactory.getLog(LimitLatch.class);
 
+    /**
+     * 通过 juc 下的 aqs 来实现
+     */
     private class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 1L;
 
         public Sync() {
         }
 
+        /**
+         * 申请获取一个资源
+         * 一个请求过来就申请一个资源
+         */
         @Override
         protected int tryAcquireShared(int ignored) {
             long newCount = count.incrementAndGet();
+            /* 如果申请的资源大于阈值，则拒绝 */
             if (!released && newCount > limit) {
                 // Limit exceeded
                 count.decrementAndGet();
@@ -50,6 +64,10 @@ public class LimitLatch {
             }
         }
 
+        /**
+         * 释放一个资源
+         * 一个请求结束释放一个资源
+         */
         @Override
         protected boolean tryReleaseShared(int arg) {
             count.decrementAndGet();
@@ -65,6 +83,10 @@ public class LimitLatch {
     /**
      * Instantiates a LimitLatch object with an initial limit.
      * @param limit - maximum number of concurrent acquisitions of this latch
+     *
+     * otz:
+     *  初始化 LimitLatch，并且指定最大并发数
+     *
      */
     public LimitLatch(long limit) {
         this.limit = limit;
@@ -114,6 +136,13 @@ public class LimitLatch {
         if (log.isDebugEnabled()) {
             log.debug("Counting up["+Thread.currentThread().getName()+"] latch="+getCount());
         }
+        /**
+         * 这里其实是调用 {@link Sync#tryAcquireShared} 方法，因为重写了父类方法
+         * 需要注意：
+         *  在重写的逻辑中并没有阻塞逻辑，而是将在父类中实现的，采用中断方式获取
+         *  也就是阻塞等待获取，可以被终端
+         *  逻辑直接进入该方法即可
+         */
         sync.acquireSharedInterruptibly(1);
     }
 

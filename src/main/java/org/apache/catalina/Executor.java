@@ -23,7 +23,9 @@ import java.util.concurrent.TimeUnit;
  * tomcat 线程池由 service 维护，因此同一个 service 中组件可以共享一个线程池
  *
  * 如果没有指定线程池，那么 Endpoint 会启动一组线程来监听 socket 端口，当接到请求后会创建请求对象，然后交给线程池处理
+ * 可以通过 server.xml 来配置，参考 resources/conf/server.xml
  *
+ * service connector 和 executor 三者关系参考 resources/doc/service-executor-connector三者关系.png
  *
  */
 public interface Executor extends java.util.concurrent.Executor, Lifecycle {

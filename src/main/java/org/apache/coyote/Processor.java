@@ -33,6 +33,10 @@ import org.apache.tomcat.util.net.SocketWrapperBase;
  *
  *  Processor 如何映射到 container？ -> {@link org.apache.catalina.mapper.Mapper}
  *
+ * tomcat 按照协议提供了三个实现类
+ *  {@link org.apache.coyote.http11.Http11Processor} HTTP/1.1
+ *  {@link org.apache.coyote.ajp.AjpProcessor}  AJP
+ *  {@link org.apache.coyote.http2.StreamProcessor} HTTP/2.0
  */
 public interface Processor {
 

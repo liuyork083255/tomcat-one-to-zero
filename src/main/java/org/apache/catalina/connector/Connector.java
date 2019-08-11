@@ -51,6 +51,12 @@ import org.apache.tomcat.util.res.StringManager;
  *
  * @author Craig R. McClanahan
  * @author Remy Maucherat
+ *
+ * otz:
+ *  tomcat 中核心组件 connector，用于连接客户端请求
+ *
+ *
+ *
  */
 public class Connector extends LifecycleMBeanBase  {
 

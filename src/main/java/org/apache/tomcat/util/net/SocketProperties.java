@@ -31,6 +31,7 @@ import javax.management.ObjectName;
  * in server.xml. All properties are prefixed with &quot;socket.&quot;
  * and are currently only working for the Nio connector
  */
+@SuppressWarnings("all")
 public class SocketProperties {
 
     /**
