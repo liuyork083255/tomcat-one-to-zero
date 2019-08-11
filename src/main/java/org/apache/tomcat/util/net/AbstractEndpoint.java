@@ -454,10 +454,17 @@ public abstract class AbstractEndpoint<S> {
 
 
     /**
-     * Acceptor thread count.
+     * Acceptor 线程个数
+     * 虽然定义在这里，但是容易造成混淆
+     * 都知道，NioEndpoint 只有一个 {@link NioEndpoint#serverSock} 对象，也就是只有 acceptor 监听端口，比如8080端口
+     * 按理说应该放在子类中
+     * 所以在理解的时候需要注意，根据不同的协议实现不同，比如 NioEndpoint 类
+     * 只会监听一个端口，因为成员变量定义了一个 serverSocket
+     * 所以这里看似可以设置线程个数，但是如果采用 NioEndpoint 线程模型，只能是一个，这个条件是在 NioEndpoint 自己的方法中保证的
+     * {@link NioEndpoint#bind} 中将 acceptor 线程个数强制设置成 1 个，而且在这里面也设置了一个要监听的端口
+     * 并且 tomcat 将创建 acceptor 的逻辑设置成抽象方法，交给子类实现
      */
     protected int acceptorThreadCount = 1;
-
     public void setAcceptorThreadCount(int acceptorThreadCount) {
         this.acceptorThreadCount = acceptorThreadCount;
     }

@@ -24,7 +24,14 @@ package org.apache.tomcat.util.collections;
  * as possible with minimum garbage.
  *
  * @param <T> The type of object managed by this stack
+ *
+ * otz:
+ *  缓存池，可以理解成 netty 中的对象池 Recycler
+ *  主要的目的都是减小创建对象的开销以及GC负担
+ *
+ *  整个算法很简单，没有牵涉到不同线程之间的生产和回收
  */
+@SuppressWarnings("all")
 public class SynchronizedStack<T> {
 
     public static final int DEFAULT_SIZE = 128;
@@ -38,6 +45,9 @@ public class SynchronizedStack<T> {
      */
     private int index = -1;
 
+    /**
+     * 被缓存的对象
+     */
     private Object[] stack;
 
 
@@ -70,7 +80,9 @@ public class SynchronizedStack<T> {
         return true;
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * 弹出对象后，直接将原来的位置置空
+     */
     public synchronized T pop() {
         if (index == -1) {
             return null;
@@ -90,7 +102,9 @@ public class SynchronizedStack<T> {
     }
 
     private void expand() {
+        /* 大小扩容两倍 */
         int newSize = size * 2;
+        /* 如果大于了阈值 limit，则重置大小等于 limit */
         if (limit != -1 && newSize > limit) {
             newSize = limit;
         }

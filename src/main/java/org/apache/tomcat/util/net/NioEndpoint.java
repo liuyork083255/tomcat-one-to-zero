@@ -118,6 +118,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
     /**
      * Bytebuffer cache, each channel holds a set of buffers (two, except for SSL holds four)
+     * otz:
+     *  NioChannel 对象缓存池
+     *
+     *  回收方法是 {@link #close}
      */
     private SynchronizedStack<NioChannel> nioChannels;
 
@@ -161,6 +165,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
     /**
      * Poller thread count.
+     * 默认 2 个
      */
     private int pollerThreadCount = Math.min(2,Runtime.getRuntime().availableProcessors());
     public void setPollerThreadCount(int pollerThreadCount) { this.pollerThreadCount = pollerThreadCount; }
@@ -169,6 +174,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
     private long selectorTimeout = 1000;
     public void setSelectorTimeout(long timeout){ this.selectorTimeout = timeout;}
     public long getSelectorTimeout(){ return this.selectorTimeout; }
+
     /**
      * The socket poller.
      */
@@ -180,6 +186,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
      * @return The next poller in sequence
      */
     public Poller getPoller0() {
+        /* 采用轮序规则 */
         int idx = Math.abs(pollerRotater.incrementAndGet()) % pollers.length;
         return pollers[idx];
     }
@@ -230,11 +237,19 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
      */
     @Override
     public void bind() throws Exception {
-
+        /**
+         * 在和 spring-boot-web 结合的版本中，这里没有判断，而是直接新建 serverSocket
+         * 就是 if{...} 里面的代码
+         */
         if (!getUseInheritedChannel()) {
             serverSock = ServerSocketChannel.open();
             socketProperties.setProperties(serverSock.socket());
             InetSocketAddress addr = (getAddress()!=null?new InetSocketAddress(getAddress(),getPort()):new InetSocketAddress(getPort()));
+            /*
+             * 这个步骤其实就是已经开始绑定端口然后开始监听了
+             * 因为 debug 中，当没有执行这一步骤，那么请求直接提示服务不存在
+             * 但是一旦执行这一步骤，那么请求就会连接进来，直到当前线程执行 .accept 方法创建 socket 进行处理
+             */
             serverSock.socket().bind(addr,getAcceptCount());
         } else {
             // Retrieve the channel provided by the OS
@@ -246,13 +261,25 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                 throw new IllegalArgumentException(sm.getString("endpoint.init.bind.inherited"));
             }
         }
+        /**
+         * 和 netty 区别开，这里是阻塞状态
+         * 性能其实差不多，因为 netty 中其实一般情况下也是只有一个线程作为 acceptor
+         * 两者都是在一个线程中处理进来的连接，然后交给后面的线程处理
+         * 只不过 netty 的设计模式能支持一个 acceptor 线程注册N个端口，同时保持M个客户端连接
+         * 因为采用 selector 选择器
+         * 而 tomcat 的 acceptor 没有采用 selector
+         */
         serverSock.configureBlocking(true); //mimic APR behavior
 
-        // Initialize thread count defaults for acceptor, poller
+
+        /* 设置 acceptor 线程个数，默认 1 */
         if (acceptorThreadCount == 0) {
             // FIXME: Doesn't seem to work that well with multiple accept threads
+            /* 因为只有监听一个端口，并且是阻塞模式，所以只能是一个线程 */
             acceptorThreadCount = 1;
         }
+
+        /* 初始化 poller 线程个数，默认 2 */
         if (pollerThreadCount <= 0) {
             //minimum one poller thread
             pollerThreadCount = 1;
@@ -262,11 +289,17 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         // Initialize SSL if needed
         initialiseSsl();
 
+        // TODO: 2019/8/11
         selectorPool.open();
     }
 
     /**
-     * Start the NIO endpoint, creating acceptor, poller threads.
+     * 启动 endpoint 端点 socket
+     * 具体是
+     *  1 初始化相关属性
+     *  2 设置线程池
+     *  3 创建 poller 线程并启动
+     *  4 创建 acceptor 线程并启动
      */
     @Override
     public void startInternal() throws Exception {
@@ -286,7 +319,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
             initializeConnectionLatch();
 
-            // Start poller threads
+            /* 创建 poller 线程组，然后逐一启动线程 */
             pollers = new Poller[getPollerThreadCount()];
             for (int i=0; i<pollers.length; i++) {
                 pollers[i] = new Poller();
@@ -296,6 +329,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                 pollerThread.start();
             }
 
+            /* 调用父类方法启动 acceptor 线程 */
             startAcceptorThreads();
         }
     }
@@ -412,7 +446,9 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
     protected boolean setSocketOptions(SocketChannel socket) {
         // Process the connection
         try {
-            //disable blocking, APR style, we are gonna be polling it
+            /**
+             * 对于新建立的请求连接则不会采用阻塞模式，而是采用非阻塞模式
+             */
             socket.configureBlocking(false);
             Socket sock = socket.socket();
             /* 设置 nio socket 属性，tcp 层属性 */
@@ -434,6 +470,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                 channel.setIOChannel(socket);
                 channel.reset();
             }
+
+            /**
+             * 1 从 poller 线程组中获取一个 poller 处理器
+             */
             getPoller0().register(channel);
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);
@@ -474,6 +514,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
      *      Acceptor 的设计模式和 netty 不同，这个 Acceptor 采用的是阻塞模式，
      *      也就是没有使用 selector 注册，而是直接单线程调用 .accept() 方法阻塞，直到有新连接接入
      *
+     *  这个 acceptor 会在父类 {@link super#startAcceptorThreads()} 方法中被创建并且新建对应的线程执行
      *
      */
     protected class Acceptor extends AbstractEndpoint.Acceptor {
@@ -515,8 +556,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
                     SocketChannel socket = null;
                     try {
-                        // Accept the next incoming connection from the server
-                        // socket
+                        /**
+                         * 所有 http 请求连接都是从这里接入
+                         * 如果没有请求则会一直阻塞
+                         */
                         socket = serverSock.accept();
                     } catch (IOException ioe) {
                         /** 出现异常说明当前请求并没有生效，直接释放 */
@@ -535,7 +578,11 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
                     /** 再次判断外界有没有主动关闭 Acceptor */
                     if (running && !paused) {
-                        // setSocketOptions() will hand the socket off to an appropriate processor if successful
+                        /**
+                         * setSocketOptions 核心方法
+                         * 1 当前连接属性
+                         * 2 封装成 NioChannel
+                         */
                         if (!setSocketOptions(socket)) {
                             closeSocket(socket);
                         }
@@ -578,7 +625,15 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         return new SocketProcessor(socketWrapper, event);
     }
 
-
+    /**
+     * {@link #nioChannels} 是用来缓存 NioChannel 对象的
+     * 第一次：一个请求过来肯定没有缓存，所以新建
+     * 那么什么时候回收这个对象呢？
+     *  就是在这个连接断开之后才回收
+     *  也即是在 keepAlive 情况下，如果连接一直存在是不会回收的
+     *
+     * 比如使用 浏览器、postMan 等客户端工具，默认都是开启 keepAlive，时间默认都是 60s
+     */
     private void close(NioChannel socket, SelectionKey key) {
         try {
             if (socket.getPoller().cancelledKey(key) != null) {
@@ -679,13 +734,26 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
      * otz:
      *  Poller 组件用在非阻塞 IO 模型中，轮训多个客户端连接，不断检测，处理各种事情，
      *  例如不断检测各个连接是否可读，对于可读的客户端连接尝试进行读取解析消息报文
+     *  可以理解成 netty 中的 worker 线程组的 NioEventLoop
+     *  上面注册了 读事件
+     *
+     * Poller 工作原理：
+     *  所有的连接数据交互都需要经历2步骤
+     *  1 客户端发起连接请求
+     *  2 连接建立好后，客户端开始真正发送数据
+     *
+     * Acceptor 就是 netty 中的 boss-NioEventLoop，用于处理连接接入，只不过前者是采用阻塞模式
+     * Poller 就是 netty 中的 worker-NioEventLoop，用于处理数据的读取
+     *
      */
     public class Poller implements Runnable {
-
+        /** 每个 Poller 所属的 selector */
         private Selector selector;
+
         private final SynchronizedQueue<PollerEvent> events = new SynchronizedQueue<>();
 
         private volatile boolean close = false;
+
         private long nextExpiration = 0;//optimize expiration handling
 
         private AtomicLong wakeupCounter = new AtomicLong(0);
@@ -711,9 +779,23 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
             selector.wakeup();
         }
 
+        /**
+         * 客户端请求连接 SocketChannel 会封装成一个 {@link NioChannel}，然后会进一步封装成 {@link PollerEvent}
+         * 最后被添加到 {@link Poller#events} 同步队列中
+         */
         private void addEvent(PollerEvent event) {
             events.offer(event);
-            if ( wakeupCounter.incrementAndGet() == 0 ) selector.wakeup();
+            /**
+             * wakeupCounter 加 1
+             * 如果加 1 之前其值为 0，则设置 selector.wakeup()
+             */
+            if (wakeupCounter.incrementAndGet() == 0) {
+                /**
+                 * 1 如果 Poller 线程已经调用了 select 或者 select(long) 进入了阻塞，那么这个 wakeup 操作会唤醒 Poller 线程
+                 * 2 如果没有 Poller 线程阻塞在这个 selector 上，那么这次调用会作为一个标识，下次 Poller 线程调用 select 或者 select(long) 会立马返回
+                 */
+                selector.wakeup();
+            }
         }
 
         /**
@@ -748,17 +830,25 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
          *
          * @return <code>true</code> if some events were processed,
          *   <code>false</code> if queue was empty
+         *
+         * otz:
+         *  遍历 poller 的 events 队列
+         *  如果有则执行，并且返回 true
+         *  否则返回 false
          */
         public boolean events() {
             boolean result = false;
 
             PollerEvent pe = null;
+            /* 轮训 events 中的  PollerEvent */
             for (int i = 0, size = events.size(); i < size && (pe = events.poll()) != null; i++ ) {
                 result = true;
                 try {
+                    /* 轮训出来后执行，这里负责执行的线程是当前 poller 线程 */
                     pe.run();
                     pe.reset();
                     if (running && !paused) {
+                        /* 缓存对象 */
                         eventCache.push(pe);
                     }
                 } catch ( Throwable x ) {
@@ -772,7 +862,8 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         /**
          * Registers a newly created socket with the poller.
          *
-         * @param socket    The newly created socket
+         * otz:
+         *  将 NioChannel 添加到 poller 中
          */
         public void register(final NioChannel socket) {
             socket.setPoller(this);
@@ -785,11 +876,23 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
             ka.setSecure(isSSLEnabled());
             ka.setReadTimeout(getConnectionTimeout());
             ka.setWriteTimeout(getConnectionTimeout());
-            PollerEvent r = eventCache.pop();
+
+            /* 注册读事件 */
             ka.interestOps(SelectionKey.OP_READ);//this is what OP_REGISTER turns into.
-            if ( r==null) r = new PollerEvent(socket,ka,OP_REGISTER);
+
+            PollerEvent r = eventCache.pop();
+            if ( r==null) {
+                r = new PollerEvent(socket,ka,OP_REGISTER);
+            }
             else r.reset(socket,ka,OP_REGISTER);
+            /* 添加到 poller 中 */
             addEvent(r);
+
+            /**
+             *  直到这里结束，也就是 Acceptor 线程每次接受请求需要处理到这里，都是在 Acceptor 线程中执行的
+             *  需要注意：只有新连接才会执行上面的代码，
+             *  比如 keepAlive 只有建立建立的时候才会执行
+             */
         }
 
         public NioSocketWrapper cancelledKey(SelectionKey key) {
@@ -852,6 +955,9 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
          * The background thread that adds sockets to the Poller, checks the
          * poller for triggered events and hands the associated socket off to an
          * appropriate processor as events occur.
+         *
+         * otz:
+         *  该方法就是 poller 线程执行的逻辑
          */
         @Override
         public void run() {
@@ -862,16 +968,33 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
                 try {
                     if (!close) {
+                        /* 是否有 event 被执行 */
                         hasEvents = events();
+
+                        /**
+                         * 将 wakeupCounter 设置成 -1 暂时不理解为什么？ todo
+                         * 但是这里设置之前先获取一次原先值，如果大于 0，说明有 event 被添加到队列中需要被处理
+                         * 所以这
+                         */
                         if (wakeupCounter.getAndSet(-1) > 0) {
-                            //if we are here, means we have other stuff to do
-                            //do a non blocking select
+                            /*
+                             * 之所以调用 selectNow
+                             * 是因为在并发情况下，有 event 被添加到了任务队列中，需要被处理
+                             * 但是调用 selectNow 好处就是，如果在上一次循环结束到当前这个点之间有已经注册的 channel 发生了
+                             * 读事件，那么需要将全部取出来处理
+                             *
+                             * 比如已经建立了一个 keepAlive 连接，同时有线程往 events 队列中添加了 event，
+                             * 刚好这个 keepAlive 连接发生了读事件
+                             * 那么本次轮序就不应该阻塞(因为判断出有 event 在队列中)，并且不应该忽略发生了读事件的 channel
+                             */
                             keyCount = selector.selectNow();
                         } else {
+                            /* 如果队列中没有 event，则默认进行阻塞选择，时间和 netty 一样，默认阻塞 1s */
                             keyCount = selector.select(selectorTimeout);
                         }
                         wakeupCounter.set(0);
                     }
+
                     if (close) {
                         events();
                         timeout(0, false);
