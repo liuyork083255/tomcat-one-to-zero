@@ -37,20 +37,19 @@ import org.apache.tomcat.util.collections.SynchronizedQueue;
 import org.apache.tomcat.util.collections.SynchronizedStack;
 import org.apache.tomcat.util.net.NioEndpoint.NioSocketWrapper;
 
+@SuppressWarnings("all")
 public class NioBlockingSelector {
 
     private static final Log log = LogFactory.getLog(NioBlockingSelector.class);
 
     private static int threadCounter = 0;
 
-    private final SynchronizedStack<KeyReference> keyReferenceStack =
-            new SynchronizedStack<>();
+    private final SynchronizedStack<KeyReference> keyReferenceStack = new SynchronizedStack<>();
 
     protected Selector sharedSelector;
 
     protected BlockPoller poller;
     public NioBlockingSelector() {
-
     }
 
     public void open(Selector selector) {

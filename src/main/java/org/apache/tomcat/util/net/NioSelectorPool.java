@@ -35,16 +35,17 @@ import org.apache.juli.logging.LogFactory;
  * @version 1.0
  * @since 6.0
  */
-
+@SuppressWarnings("all")
 public class NioSelectorPool {
 
-    public NioSelectorPool() {
-    }
+    public NioSelectorPool() { }
 
     private static final Log log = LogFactory.getLog(NioSelectorPool.class);
 
-    protected static final boolean SHARED =
-        Boolean.parseBoolean(System.getProperty("org.apache.tomcat.util.net.NioSelectorShared", "true"));
+    /**
+     * 判断是否需要共享 selector
+     */
+    protected static final boolean SHARED = Boolean.parseBoolean(System.getProperty("org.apache.tomcat.util.net.NioSelectorShared", "true"));
 
     protected NioBlockingSelector blockingSelector;
 

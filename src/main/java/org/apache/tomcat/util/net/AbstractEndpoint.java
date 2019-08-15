@@ -1109,29 +1109,35 @@ public abstract class AbstractEndpoint<S> {
      *
      * @param socketWrapper The socket wrapper to process
      * @param event         The socket event to be processed
-     * @param dispatch      Should the processing be performed on a new
-     *                          container thread
+     * @param dispatch      Should the processing be performed on a new container thread
+     *                      当前 run 方法任务是否需要提交给 worker 线程池处理
      *
      * @return if processing was triggered successfully
      */
-    public boolean processSocket(SocketWrapperBase<S> socketWrapper,
-            SocketEvent event, boolean dispatch) {
+    public boolean processSocket(SocketWrapperBase<S> socketWrapper, SocketEvent event, boolean dispatch) {
         try {
             if (socketWrapper == null) {
                 return false;
             }
+            /* 从缓存中获取对象，没有则新建 */
             SocketProcessorBase<S> sc = processorCache.pop();
             if (sc == null) {
                 sc = createSocketProcessor(socketWrapper, event);
             } else {
                 sc.reset(socketWrapper, event);
             }
+
+            /**
+             * 交给 worker 线程池处理
+             * 至此：poller 线程交接给 worker 线程进行处理
+             */
             Executor executor = getExecutor();
             if (dispatch && executor != null) {
                 executor.execute(sc);
             } else {
                 sc.run();
             }
+
         } catch (RejectedExecutionException ree) {
             getLog().warn(sm.getString("endpoint.executor.fail", socketWrapper) , ree);
             return false;
