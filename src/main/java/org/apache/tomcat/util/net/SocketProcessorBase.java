@@ -35,6 +35,10 @@ public abstract class SocketProcessorBase<S> implements Runnable {
     }
 
 
+    /**
+     * processor 默认被线程池执行，也就是常见的 http-nio-8080-exec-1 线程
+     * 最终的逻辑都是在 doRun() 方法，具体的 IO 类型实现不同，由子类控制
+     */
     @Override
     public final void run() {
         synchronized (socketWrapper) {
@@ -43,6 +47,12 @@ public abstract class SocketProcessorBase<S> implements Runnable {
             // does not occur in parallel. The test below ensures that if the
             // first event to be processed results in the socket being closed,
             // the subsequent events are not processed.
+
+            /*
+             * 有可能同时触发读和写处理。
+             * synchronized 同步确保处理不会并行进行。
+             * isClosed() 确保如果要处理的第一个事件导致套接字关闭，则不会处理后续事件
+             */
             if (socketWrapper.isClosed()) {
                 return;
             }

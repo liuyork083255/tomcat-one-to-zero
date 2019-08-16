@@ -28,6 +28,7 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.res.StringManager;
 
+@SuppressWarnings("all")
 public abstract class SocketWrapperBase<E> {
 
     private static final Log log = LogFactory.getLog(SocketWrapperBase.class);

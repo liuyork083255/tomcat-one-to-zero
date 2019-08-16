@@ -97,8 +97,7 @@ public abstract class AbstractEndpoint<S> {
          *
          * @return The state of the socket after processing
          */
-        public SocketState process(SocketWrapperBase<S> socket,
-                                   SocketEvent status);
+        public SocketState process(SocketWrapperBase<S> socket, SocketEvent status);
 
 
         /**
@@ -112,8 +111,7 @@ public abstract class AbstractEndpoint<S> {
         /**
          * Obtain the currently open sockets.
          *
-         * @return The sockets for which the handler is tracking a currently
-         *         open connection
+         * @return The sockets for which the handler is tracking a currently open connection
          */
         public Set<S> getOpenSockets();
 
@@ -1133,13 +1131,17 @@ public abstract class AbstractEndpoint<S> {
              */
             Executor executor = getExecutor();
             if (dispatch && executor != null) {
+                /*
+                 * 如果 Worker 线程池被设置并且被要求分发:dispatch==true,
+                 * 则在 Worker 线程池上执行刚刚封装的 SocketProcessor 的设定逻辑
+                 */
                 executor.execute(sc);
             } else {
                 sc.run();
             }
 
         } catch (RejectedExecutionException ree) {
-            getLog().warn(sm.getString("endpoint.executor.fail", socketWrapper) , ree);
+            getLog().warn(sm.getString("endpoint.executor.fail", socketWrapper), ree);
             return false;
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);
@@ -1152,8 +1154,7 @@ public abstract class AbstractEndpoint<S> {
     }
 
 
-    protected abstract SocketProcessorBase<S> createSocketProcessor(
-            SocketWrapperBase<S> socketWrapper, SocketEvent event);
+    protected abstract SocketProcessorBase<S> createSocketProcessor(SocketWrapperBase<S> socketWrapper, SocketEvent event);
 
 
     // ------------------------------------------------------- Lifecycle methods

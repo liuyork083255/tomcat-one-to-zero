@@ -20,6 +20,10 @@ import java.nio.ByteBuffer;
 
 import org.apache.tomcat.util.buf.ByteBufferUtils;
 
+/**
+ *
+ * tomcat 中并没有对 buffer 重构，而是采用原始对象完成读写操作，有区别与 netty 重构的 ByteBuf
+ */
 public class SocketBufferHandler {
 
     private volatile boolean readBufferConfiguredForWrite = true;
@@ -30,8 +34,7 @@ public class SocketBufferHandler {
 
     private final boolean direct;
 
-    public SocketBufferHandler(int readBufferSize, int writeBufferSize,
-            boolean direct) {
+    public SocketBufferHandler(int readBufferSize, int writeBufferSize, boolean direct) {
         this.direct = direct;
         if (direct) {
             readBuffer = ByteBuffer.allocateDirect(readBufferSize);

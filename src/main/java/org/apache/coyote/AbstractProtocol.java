@@ -701,12 +701,11 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
         }
 
 
+        /**
+         * 用给定的当前状态 SocketEvent 处理提供的套接字
+         */
         @Override
         public SocketState process(SocketWrapperBase<S> wrapper, SocketEvent status) {
-            if (getLog().isDebugEnabled()) {
-                getLog().debug(sm.getString("abstractConnectionHandler.process",
-                        wrapper.getSocket(), status));
-            }
             if (wrapper == null) {
                 // Nothing to do. Socket has been closed.
                 return SocketState.CLOSED;
@@ -715,17 +714,12 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
             S socket = wrapper.getSocket();
 
             Processor processor = connections.get(socket);
-            if (getLog().isDebugEnabled()) {
-                getLog().debug(sm.getString("abstractConnectionHandler.connectionsGet",
-                        processor, socket));
-            }
 
             // Async timeouts are calculated on a dedicated thread and then
             // dispatched. Because of delays in the dispatch process, the
             // timeout may no longer be required. Check here and avoid
             // unnecessary processing.
-            if (SocketEvent.TIMEOUT == status && (processor == null ||
-                    !processor.isAsync() || !processor.checkAsyncTimeoutGeneration())) {
+            if (SocketEvent.TIMEOUT == status && (processor == null || !processor.isAsync() || !processor.checkAsyncTimeoutGeneration())) {
                 // This is effectively a NO-OP
                 return SocketState.OPEN;
             }
@@ -750,8 +744,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                         UpgradeProtocol upgradeProtocol =
                                 getProtocol().getNegotiatedProtocol(negotiatedProtocol);
                         if (upgradeProtocol != null) {
-                            processor = upgradeProtocol.getProcessor(
-                                    wrapper, getProtocol().getAdapter());
+                            processor = upgradeProtocol.getProcessor(wrapper, getProtocol().getAdapter());
                         } else if (negotiatedProtocol.equals("http/1.1")) {
                             // Explicitly negotiated the default protocol.
                             // Obtain a processor below.
@@ -763,11 +756,6 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                             // fail the connection here. Once this is fixed,
                             // replace the code below with the commented out
                             // block.
-                            if (getLog().isDebugEnabled()) {
-                                getLog().debug(sm.getString(
-                                    "abstractConnectionHandler.negotiatedProcessor.fail",
-                                    negotiatedProtocol));
-                            }
                             return SocketState.CLOSED;
                             /*
                              * To replace the code above once OpenSSL 1.1.0 is
@@ -782,24 +770,20 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                 }
                 if (processor == null) {
                     processor = recycledProcessors.pop();
-                    if (getLog().isDebugEnabled()) {
-                        getLog().debug(sm.getString("abstractConnectionHandler.processorPop",
-                                processor));
-                    }
                 }
                 if (processor == null) {
                     processor = getProtocol().createProcessor();
                     register(processor);
                 }
 
-                processor.setSslSupport(
-                        wrapper.getSslSupport(getProtocol().getClientCertProvider()));
+                processor.setSslSupport(wrapper.getSslSupport(getProtocol().getClientCertProvider()));
 
                 // Associate the processor with the connection
                 connections.put(socket, processor);
 
                 SocketState state = SocketState.CLOSED;
                 do {
+                    /* 这一步执行后，servlet 已经接收到请求并且响应给了前端 */
                     state = processor.process(wrapper, status);
 
                     if (state == SocketState.UPGRADING) {
@@ -811,17 +795,11 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                             // Assume direct HTTP/2 connection
                             UpgradeProtocol upgradeProtocol = getProtocol().getUpgradeProtocol("h2c");
                             if (upgradeProtocol != null) {
-                                processor = upgradeProtocol.getProcessor(
-                                        wrapper, getProtocol().getAdapter());
+                                processor = upgradeProtocol.getProcessor(wrapper, getProtocol().getAdapter());
                                 wrapper.unRead(leftOverInput);
                                 // Associate with the processor with the connection
                                 connections.put(socket, processor);
                             } else {
-                                if (getLog().isDebugEnabled()) {
-                                    getLog().debug(sm.getString(
-                                        "abstractConnectionHandler.negotiatedProcessor.fail",
-                                        "h2c"));
-                                }
                                 return SocketState.CLOSED;
                             }
                         } else {
@@ -830,10 +808,6 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                             release(processor);
                             // Create the upgrade processor
                             processor = getProtocol().createUpgradeProcessor(wrapper, upgradeToken);
-                            if (getLog().isDebugEnabled()) {
-                                getLog().debug(sm.getString("abstractConnectionHandler.upgradeCreate",
-                                        processor, wrapper));
-                            }
                             wrapper.unRead(leftOverInput);
                             // Mark the connection as upgraded
                             wrapper.setUpgraded(true);
@@ -910,7 +884,6 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                                     instanceManager.destroyInstance(httpUpgradeHandler);
                                 } catch (Throwable e) {
                                     ExceptionUtils.handleThrowable(e);
-                                    getLog().error(sm.getString("abstractConnectionHandler.error"), e);
                                 }
                                 upgradeToken.getContextBind().unbind(false, oldCL);
                             }
@@ -922,17 +895,14 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                 return state;
             } catch(java.net.SocketException e) {
                 // SocketExceptions are normal
-                getLog().debug(sm.getString(
-                        "abstractConnectionHandler.socketexception.debug"), e);
+                getLog().debug(sm.getString("abstractConnectionHandler.socketexception.debug"), e);
             } catch (java.io.IOException e) {
                 // IOExceptions are normal
-                getLog().debug(sm.getString(
-                        "abstractConnectionHandler.ioexception.debug"), e);
+                getLog().debug(sm.getString("abstractConnectionHandler.ioexception.debug"), e);
             } catch (ProtocolException e) {
                 // Protocol exceptions normally mean the client sent invalid or
                 // incomplete data.
-                getLog().debug(sm.getString(
-                        "abstractConnectionHandler.protocolexception.debug"), e);
+                getLog().debug(sm.getString("abstractConnectionHandler.protocolexception.debug"), e);
             }
             // Future developers: if you discover any other
             // rare-but-nonfatal exceptions, catch them here, and log as
