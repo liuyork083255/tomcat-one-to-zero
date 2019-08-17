@@ -487,8 +487,7 @@ public abstract class AuthenticatorBase extends ValveBase
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
         if (log.isDebugEnabled()) {
-            log.debug("Security checking request " + request.getMethod() + " " +
-                    request.getRequestURI());
+            log.debug("Security checking request " + request.getMethod() + " " + request.getRequestURI());
         }
 
         // Have we got a cached authenticated Principal to record?
@@ -500,8 +499,7 @@ public abstract class AuthenticatorBase extends ValveBase
                     principal = session.getPrincipal();
                     if (principal != null) {
                         if (log.isDebugEnabled()) {
-                            log.debug("We have cached auth type " + session.getAuthType() +
-                                    " for principal " + principal);
+                            log.debug("We have cached auth type " + session.getAuthType() + " for principal " + principal);
                         }
                         request.setAuthType(session.getAuthType());
                         request.setUserPrincipal(principal);
@@ -525,6 +523,9 @@ public abstract class AuthenticatorBase extends ValveBase
             if (log.isDebugEnabled()) {
                 log.debug(" Not subject to any constraint");
             }
+            /**
+             * 进入 {@link org.apache.catalina.core.StandardContextValve#invoke(Request, Response)}
+             */
             getNext().invoke(request, response);
             return;
         }
@@ -583,12 +584,10 @@ public abstract class AuthenticatorBase extends ValveBase
         }
 
         if (!authRequired && context.getPreemptiveAuthentication()) {
-            authRequired =
-                    request.getCoyoteRequest().getMimeHeaders().getValue("authorization") != null;
+            authRequired = request.getCoyoteRequest().getMimeHeaders().getValue("authorization") != null;
         }
 
-        if (!authRequired && context.getPreemptiveAuthentication() &&
-                HttpServletRequest.CLIENT_CERT_AUTH.equals(getAuthMethod())) {
+        if (!authRequired && context.getPreemptiveAuthentication() && HttpServletRequest.CLIENT_CERT_AUTH.equals(getAuthMethod())) {
             X509Certificate[] certs = getRequestCertificates(request);
             authRequired = certs != null && certs.length > 0;
         }

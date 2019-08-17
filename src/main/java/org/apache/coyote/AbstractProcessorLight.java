@@ -38,8 +38,7 @@ public abstract class AbstractProcessorLight implements Processor {
 
 
     @Override
-    public SocketState process(SocketWrapperBase<?> socketWrapper, SocketEvent status)
-            throws IOException {
+    public SocketState process(SocketWrapperBase<?> socketWrapper, SocketEvent status) throws IOException {
 
         SocketState state = SocketState.CLOSED;
         Iterator<DispatchType> dispatches = null;
@@ -63,6 +62,11 @@ public abstract class AbstractProcessorLight implements Processor {
                 // Extra write event likely after async, ignore
                 state = SocketState.LONG;
             } else if (status == SocketEvent.OPEN_READ) {
+                /**
+                 * 这一步执行后，servlet 已经接收到请求并且响应给了前端
+                 * 进入 {@link org.apache.coyote.http11.Http11Processor#service}
+                 *
+                 */
                 state = service(socketWrapper);
             } else if (status == SocketEvent.CONNECT_FAIL) {
                 logAccess(socketWrapper);

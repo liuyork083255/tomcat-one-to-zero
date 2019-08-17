@@ -109,8 +109,7 @@ final class StandardWrapperValve
 
         // Check for the application being marked unavailable
         if (!context.getState().isAvailable()) {
-            response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                           sm.getString("standardContext.isUnavailable"));
+            response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, sm.getString("standardContext.isUnavailable"));
             unavailable = true;
         }
 
@@ -121,13 +120,12 @@ final class StandardWrapperValve
             long available = wrapper.getAvailable();
             if ((available > 0L) && (available < Long.MAX_VALUE)) {
                 response.setDateHeader("Retry-After", available);
-                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                        sm.getString("standardWrapper.isUnavailable",
-                                wrapper.getName()));
+
+                System.out.println("去除警告线");
+
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, sm.getString("standardWrapper.isUnavailable", wrapper.getName()));
             } else if (available == Long.MAX_VALUE) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND,
-                        sm.getString("standardWrapper.notFound",
-                                wrapper.getName()));
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, sm.getString("standardWrapper.notFound", wrapper.getName()));
             }
             unavailable = true;
         }
@@ -143,14 +141,13 @@ final class StandardWrapperValve
                             wrapper.getName()), e);
             long available = wrapper.getAvailable();
             if ((available > 0L) && (available < Long.MAX_VALUE)) {
+
+                System.out.println("去除警告线");
+
                 response.setDateHeader("Retry-After", available);
-                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                           sm.getString("standardWrapper.isUnavailable",
-                                        wrapper.getName()));
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, sm.getString("standardWrapper.isUnavailable", wrapper.getName()));
             } else if (available == Long.MAX_VALUE) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND,
-                           sm.getString("standardWrapper.notFound",
-                                        wrapper.getName()));
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, sm.getString("standardWrapper.notFound", wrapper.getName()));
             }
         } catch (ServletException e) {
             container.getLogger().error(sm.getString("standardWrapper.allocateException",
@@ -173,6 +170,7 @@ final class StandardWrapperValve
         request.setAttribute(Globals.DISPATCHER_REQUEST_PATH_ATTR,
                 requestPathMB);
         // Create the filter chain for this request
+        /* 创建过滤链 */
         ApplicationFilterChain filterChain = ApplicationFilterFactory.createFilterChain(request, wrapper, servlet);
 
         // Call the filter chain for this request
@@ -186,8 +184,10 @@ final class StandardWrapperValve
                         if (request.isAsyncDispatching()) {
                             request.getAsyncContextInternal().doInternalDispatch();
                         } else {
-                            filterChain.doFilter(request.getRequest(),
-                                    response.getResponse());
+                            /**
+                             * 这里会进入 servlet 方法
+                             */
+                            filterChain.doFilter(request.getRequest(), response.getResponse());
                         }
                     } finally {
                         String log = SystemLogHandler.stopCapture();
@@ -199,8 +199,10 @@ final class StandardWrapperValve
                     if (request.isAsyncDispatching()) {
                         request.getAsyncContextInternal().doInternalDispatch();
                     } else {
-                        filterChain.doFilter
-                            (request.getRequest(), response.getResponse());
+                        /**
+                         * 这里会进入 servlet 方法
+                         */
+                        filterChain.doFilter(request.getRequest(), response.getResponse());
                     }
                 }
 
@@ -270,8 +272,7 @@ final class StandardWrapperValve
             }
         } catch (Throwable e) {
             ExceptionUtils.handleThrowable(e);
-            container.getLogger().error(sm.getString("standardWrapper.deallocateException",
-                             wrapper.getName()), e);
+            container.getLogger().error(sm.getString("standardWrapper.deallocateException", wrapper.getName()), e);
             if (throwable == null) {
                 throwable = e;
                 exception(request, response, e);
@@ -287,8 +288,7 @@ final class StandardWrapperValve
             }
         } catch (Throwable e) {
             ExceptionUtils.handleThrowable(e);
-            container.getLogger().error(sm.getString("standardWrapper.unloadException",
-                             wrapper.getName()), e);
+            container.getLogger().error(sm.getString("standardWrapper.unloadException", wrapper.getName()), e);
             if (throwable == null) {
                 throwable = e;
                 exception(request, response, e);

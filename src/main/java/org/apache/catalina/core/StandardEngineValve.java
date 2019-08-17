@@ -73,16 +73,12 @@ final class StandardEngineValve extends ValveBase {
      * @exception ServletException if a servlet error occurred
      */
     @Override
-    public final void invoke(Request request, Response response)
-        throws IOException, ServletException {
+    public final void invoke(Request request, Response response) throws IOException, ServletException {
 
         // Select the Host to be used for this Request
         Host host = request.getHost();
         if (host == null) {
-            response.sendError
-                (HttpServletResponse.SC_BAD_REQUEST,
-                 sm.getString("standardEngine.noHost",
-                              request.getServerName()));
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, sm.getString("standardEngine.noHost", request.getServerName()));
             return;
         }
         if (request.isAsyncSupported()) {
@@ -92,6 +88,7 @@ final class StandardEngineValve extends ValveBase {
         // Ask this Host to process this request
         /**
          * 四个容器中，engine 是第一个，需要保证调用下一个容器:host
+         * 进入{@link org.apache.catalina.valves.ErrorReportValve#invoke(Request, Response)}
          */
         host.getPipeline().getFirst().invoke(request, response);
 

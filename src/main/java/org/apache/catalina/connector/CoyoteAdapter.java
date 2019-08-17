@@ -323,8 +323,7 @@ public class CoyoteAdapter implements Adapter {
      *
      */
     @Override
-    public void service(org.apache.coyote.Request req, org.apache.coyote.Response res)
-            throws Exception {
+    public void service(org.apache.coyote.Request req, org.apache.coyote.Response res) throws Exception {
 
         Request request = (Request) req.getNote(ADAPTER_NOTES);
         Response response = (Response) res.getNote(ADAPTER_NOTES);
@@ -377,6 +376,9 @@ public class CoyoteAdapter implements Adapter {
                  *  getContainer() 返回 {@link org.apache.catalina.core.StandardEngine}
                  *  getPipeline() 返回 {@link org.apache.catalina.core.StandardPipeline}
                  *  getFirst() 返回 {@link org.apache.catalina.core.StandardEngineValve}
+                 *  最后进入 {@link org.apache.catalina.core.StandardEngineValve#invoke}方法
+                 *
+                 *  这里仅仅是将请求传递给后面 web 的filter和servlet，并没有完成对客户端的响应
                  */
                 connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
             }
@@ -408,7 +410,7 @@ public class CoyoteAdapter implements Adapter {
                     request.getAsyncContextInternal().setErrorState(throwable, true);
                 }
             } else {
-                /* 如果为同步请求则直接则直接 flush 并关闭输入|输出流 */
+                /* 如果为同步请求则直接则直接 flush 并关闭输入|输出流，响应请求方 */
                 request.finishRequest();
                 response.finishResponse();
             }

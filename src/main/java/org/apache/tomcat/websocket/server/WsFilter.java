@@ -43,12 +43,10 @@ public class WsFilter implements Filter {
 
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response,
-            FilterChain chain) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 
         // This filter only needs to handle WebSocket upgrade requests
-        if (!sc.areEndpointsRegistered() ||
-                !UpgradeUtil.isWebSocketUpgradeRequest(request, response)) {
+        if (!sc.areEndpointsRegistered() || !UpgradeUtil.isWebSocketUpgradeRequest(request, response)) {
             chain.doFilter(request, response);
             return;
         }

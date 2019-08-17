@@ -741,8 +741,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                     // OpenSSL typically returns null whereas JSSE typically
                     // returns "" when no protocol is negotiated
                     if (negotiatedProtocol != null && negotiatedProtocol.length() > 0) {
-                        UpgradeProtocol upgradeProtocol =
-                                getProtocol().getNegotiatedProtocol(negotiatedProtocol);
+                        UpgradeProtocol upgradeProtocol = getProtocol().getNegotiatedProtocol(negotiatedProtocol);
                         if (upgradeProtocol != null) {
                             processor = upgradeProtocol.getProcessor(wrapper, getProtocol().getAdapter());
                         } else if (negotiatedProtocol.equals("http/1.1")) {
@@ -783,7 +782,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
 
                 SocketState state = SocketState.CLOSED;
                 do {
-                    /* 这一步执行后，servlet 已经接收到请求并且响应给了前端 */
+                    /** 这一步执行后，servlet 已经接收到请求并且响应给了调用方 */
                     state = processor.process(wrapper, status);
 
                     if (state == SocketState.UPGRADING) {

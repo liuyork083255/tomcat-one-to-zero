@@ -659,8 +659,7 @@ public class Http11Processor extends AbstractProcessor {
 
 
     @Override
-    public SocketState service(SocketWrapperBase<?> socketWrapper)
-        throws IOException {
+    public SocketState service(SocketWrapperBase<?> socketWrapper) throws IOException {
         RequestInfo rp = request.getRequestProcessor();
         rp.setStage(org.apache.coyote.Constants.STAGE_PARSE);
 
@@ -758,9 +757,7 @@ public class Http11Processor extends AbstractProcessor {
                         action(ActionCode.CLOSE,  null);
                         getAdapter().log(request, response, 0);
 
-                        InternalHttpUpgradeHandler upgradeHandler =
-                                upgradeProtocol.getInternalUpgradeHandler(
-                                        getAdapter(), cloneRequest(request));
+                        InternalHttpUpgradeHandler upgradeHandler = upgradeProtocol.getInternalUpgradeHandler(getAdapter(), cloneRequest(request));
                         UpgradeToken upgradeToken = new UpgradeToken(upgradeHandler, null, null);
                         action(ActionCode.UPGRADE, upgradeToken);
                         return SocketState.UPGRADING;
@@ -795,14 +792,17 @@ public class Http11Processor extends AbstractProcessor {
             if (getErrorState().isIoAllowed()) {
                 try {
                     rp.setStage(org.apache.coyote.Constants.STAGE_SERVICE);
+                    /**
+                     * 这一步执行后，servlet 已经接收到请求并且响应给了前端
+                     */
                     getAdapter().service(request, response);
+
                     // Handle when the response was committed before a serious
                     // error occurred.  Throwing a ServletException should both
                     // set the status to 500 and set the errorException.
                     // If we fail here, then the response is likely already
                     // committed, so we can't try and set headers.
-                    if(keepAlive && !getErrorState().isError() && !isAsync() &&
-                            statusDropsConnection(response.getStatus())) {
+                    if(keepAlive && !getErrorState().isError() && !isAsync() && statusDropsConnection(response.getStatus())) {
                         setErrorState(ErrorState.CLOSE_CLEAN, null);
                     }
                 } catch (InterruptedIOException e) {

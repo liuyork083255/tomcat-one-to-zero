@@ -44,6 +44,7 @@ import org.apache.tomcat.util.res.StringManager;
  *
  * @author Craig R. McClanahan
  */
+@SuppressWarnings("all")
 public final class ApplicationFilterChain implements FilterChain {
 
     // Used to enforce requirements of SRV.8.2 / SRV.14.2.5.1
@@ -101,16 +102,14 @@ public final class ApplicationFilterChain implements FilterChain {
     /**
      * The string manager for our package.
      */
-    private static final StringManager sm =
-      StringManager.getManager(Constants.Package);
+    private static final StringManager sm = StringManager.getManager(Constants.Package);
 
 
     /**
      * Static class array used when the SecurityManager is turned on and
      * <code>doFilter</code> is invoked.
      */
-    private static final Class<?>[] classType = new Class[]{
-        ServletRequest.class, ServletResponse.class, FilterChain.class};
+    private static final Class<?>[] classType = new Class[]{ServletRequest.class, ServletResponse.class, FilterChain.class};
 
     /**
      * Static class array used when the SecurityManager is turned on and
@@ -134,9 +133,9 @@ public final class ApplicationFilterChain implements FilterChain {
      * @exception ServletException if a servlet exception occurs
      */
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response)
-        throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response) throws IOException, ServletException {
 
+        /* 默认没有打开 */
         if( Globals.IS_SECURITY_ENABLED ) {
             final ServletRequest req = request;
             final ServletResponse res = response;
@@ -167,11 +166,10 @@ public final class ApplicationFilterChain implements FilterChain {
         }
     }
 
-    private void internalDoFilter(ServletRequest request,
-                                  ServletResponse response)
-        throws IOException, ServletException {
+    private void internalDoFilter(ServletRequest request, ServletResponse response) throws IOException, ServletException {
 
         // Call the next filter if there is one
+        /* 这里会遍历一系列的过滤器 */
         if (pos < n) {
             ApplicationFilterConfig filterConfig = filters[pos++];
             try {
@@ -184,12 +182,16 @@ public final class ApplicationFilterChain implements FilterChain {
                 if( Globals.IS_SECURITY_ENABLED ) {
                     final ServletRequest req = request;
                     final ServletResponse res = response;
-                    Principal principal =
-                        ((HttpServletRequest) req).getUserPrincipal();
+                    Principal principal = ((HttpServletRequest) req).getUserPrincipal();
 
                     Object[] args = new Object[]{req, res, this};
                     SecurityUtil.doAsPrivilege ("doFilter", filter, classType, args, principal);
                 } else {
+                    /**
+                     * 调用下一个 filter，因为这里传入的是 this，所以用户自定义使用的对象就是这个 ApplicationFilterChain
+                     * 由于是同一个对象，所以上面的判断 pos n 都是同一个
+                     * 如果用户调用 doFilter 方法其实就是产生了一个递归调用的效果
+                     */
                     filter.doFilter(request, response, this);
                 }
             } catch (IOException | ServletException | RuntimeException e) {
@@ -199,8 +201,16 @@ public final class ApplicationFilterChain implements FilterChain {
                 ExceptionUtils.handleThrowable(e);
                 throw new ServletException(sm.getString("filterChain.filter"), e);
             }
+            /**
+             * 如果用户自定义 Filter 没有调用 doFilter 方法，
+             * 那么运行完 filter.doFilter(request, response, this); 语句后就正常执行下面流程，也就是这里的 return
+             * 如果用户调用了 doFilter 方法，那么最终会进入当前这个方法，并且判断 if (pos < n)，由于是最后一个 Filter，
+             * 所以这里肯定不会进入 if 分支，所以就跳过了 return
+             */
             return;
         }
+
+        /* 进入这里说明过滤器已经全部执行完成，并且放行调用 doFilter */
 
         // We fell off the end of the chain -- call the servlet instance
         try {
@@ -228,6 +238,9 @@ public final class ApplicationFilterChain implements FilterChain {
                                            args,
                                            principal);
             } else {
+                /*
+                 * 在和 spring 结合的时候，这个 servlet 就是大名鼎鼎的 DispatcherServlet
+                 */
                 servlet.service(request, response);
             }
         } catch (IOException | ServletException | RuntimeException e) {
