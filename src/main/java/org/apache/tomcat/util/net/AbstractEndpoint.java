@@ -1173,6 +1173,10 @@ public abstract class AbstractEndpoint<S> {
 
     public void init() throws Exception {
         if (bindOnInit) {
+            /**
+             * 根据具体的 IO 类型启动对应的 endpoint
+             * 在 tomcat8 中已经对 jio（bio）移除
+             */
             bind();
             bindState = BindState.BOUND_ON_INIT;
         }

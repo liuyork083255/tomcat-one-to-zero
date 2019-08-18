@@ -46,6 +46,13 @@ import org.apache.tomcat.util.res.StringManager;
  * not required.
  *
  * @author Craig R. McClanahan
+ *
+ *
+ * otz:
+ *  service 是仅次于 server 下的组件，service 的初始化依赖 server，在 server 初始化的时候会负责初始化 service
+ *
+ *  service 主要由 connector 和 container 组成  参考 resources/doc/核心组件类流程依赖.png
+ *
  */
 
 public class StandardService extends LifecycleMBeanBase implements Service {
@@ -547,12 +554,14 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
         // Initialize our defined Connectors
         synchronized (connectorsLock) {
+            /**
+             * 一个 service 可以有多个 connector
+             */
             for (Connector connector : connectors) {
                 try {
                     connector.init();
                 } catch (Exception e) {
-                    String message = sm.getString(
-                            "standardService.connector.initFailed", connector);
+                    String message = sm.getString("standardService.connector.initFailed", connector);
                     log.error(message, e);
 
                     if (Boolean.getBoolean("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE"))

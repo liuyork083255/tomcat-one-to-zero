@@ -32,6 +32,13 @@ import org.apache.catalina.mapper.Mapper;
  * and classes on the system class path.
  *
  * @author Craig R. McClanahan
+ *
+ *
+ * otz:
+ *  一个 server 包含多个 service
+ *  一个 service 包含多个 connector 和一个 container
+ *  也就是 service 会负责将多个 connector 的请求映射到一个 container
+ *
  */
 public interface Service extends Lifecycle {
 

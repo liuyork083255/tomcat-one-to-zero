@@ -57,6 +57,14 @@ import org.apache.tomcat.util.http.CookieProcessor;
  * <p>
  *
  * @author Craig R. McClanahan
+ *
+ * otz:
+ *  一个 service 其实对应一个 container，也就是对应一个 engine  查看 /resoures/doc/tomcat整体架构图.png
+ *  一个 engine 理解成一个物理服务器，这台服务器上可以部署多个域名，这个域名就是 {@link Host}，比如 www.1.com; www.2.com;
+ *  但是一个域名可以部署多个应用，这个应用就是 {@link Context}，比如 www.1.com/app1; www.1.com/app2;
+ *  一个 web-app 可以多个 servlet，比如 www.1.com/app1/servlet1; www.1.com/app1/servlet2;
+ *  在 servlet 规范中将 servlet 称为 {@link Wrapper}
+ *
  */
 public interface Context extends Container, ContextBind {
 

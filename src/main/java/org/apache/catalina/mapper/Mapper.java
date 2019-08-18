@@ -50,6 +50,7 @@ import org.apache.tomcat.util.res.StringManager;
  *  具体的是 Mapper 和 MapperListener 结合完成
  *  Mapper：用于维护 container 容器映射信息的，同时按照映射规则（Servlet规范定义）查找容器
  *  MapperListener：我们知道，容器各大组件的状态都会变化，而 MapperListener 就是来监听容器的变化，实时更新 Mapper 映射信息
+ *      比如一个 context 部署到 tomcat 中，那么该监听器就会触发更新 mapper 映射关系
  *
  *
  *

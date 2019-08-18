@@ -75,6 +75,13 @@ import org.apache.juli.logging.Log;
  *
  * @author Craig R. McClanahan
  * @author Remy Maucherat
+ *
+ * otz:
+ *  service 包含多个 connector，但是对应一个 container
+ *  这个 container 其实是抽象的概念，没有对应一个具体的组件，
+ *  这个 container 具体的表现是 {@link Engine} {@link Host} {@link Context} {@link Wrapper}
+ *  这四个组件都实现了 {@link Container} 接口
+ *
  */
 public interface Container extends Lifecycle {
 

@@ -234,6 +234,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
     /**
      * Initialize the endpoint.
+     *
+     * endpoint 是属于 protocol 的，protocol 又是属于 connector 的
+     * 所以这个的 bind 的调用路线是 catalina -> server -> service -> connector -> procotol -> endpoint
+     *
      */
     @Override
     public void bind() throws Exception {
