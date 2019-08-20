@@ -65,6 +65,7 @@ import org.apache.tomcat.util.res.StringManager;
  *  CoyoteAdapter 主要是将 connector 与 mapper 、 container 联系起来
  *
  */
+@SuppressWarnings("all")
 public class CoyoteAdapter implements Adapter {
 
     private static final Log log = LogFactory.getLog(CoyoteAdapter.class);
@@ -350,6 +351,7 @@ public class CoyoteAdapter implements Adapter {
             req.getParameters().setQueryStringCharset(connector.getURICharset());
         }
 
+        /* 设置请求头，表示告诉当前网站服务器端是采用什么语言或者框架编写的 */
         if (connector.getXpoweredBy()) {
             response.addHeader("X-Powered-By", POWERED_BY);
         }
@@ -360,13 +362,13 @@ public class CoyoteAdapter implements Adapter {
         req.getRequestProcessor().setWorkerThreadName(THREAD_NAME.get());
 
         try {
-            // Parse and set Catalina and configuration specific
-            // request parameters
+            // Parse and set Catalina and configuration specific request parameters
             postParseSuccess = postParseRequest(req, request, res, response);
             if (postParseSuccess) {
                 //check valves if we support async
                 /**
-                 * 检查是否支持异步请求，
+                 * 检查是否支持异步请求
+                 * 这个只是配置，跟当前请求没有关系
                  */
                 request.setAsyncSupported(connector.getService().getContainer().getPipeline().isAsyncSupported());
                 // Calling the container
@@ -378,12 +380,26 @@ public class CoyoteAdapter implements Adapter {
                  *  getFirst() 返回 {@link org.apache.catalina.core.StandardEngineValve}
                  *  最后进入 {@link org.apache.catalina.core.StandardEngineValve#invoke}方法
                  *
-                 *  这里仅仅是将请求传递给后面 web 的filter和servlet，并没有完成对客户端的响应
+                 *  测试下来，都是 tomcat8 但在不同的小版本中效果不一样：
+                 *      有的是执行下面的invoke 方法就完成了响应，
+                 *      有的是执行完成后并没有响应，而是要执行下面 else 分支中的 finishRequest finishResponse 才会响应
+                 *  原因是 spring-boot-web 版本导致的，也就是 spring 里面是可以获取输出流，然后直接写入 channel
+                 *  写入的方式原理就是获取 response 的 outputStream 流，然后调用 write+flush 方法
                  */
                 connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
             }
 
-            /* 异步请求处理 */
+            /**
+             * 异步请求处理
+             * 当一个请求进来，默认配置都是支持异步的，但是：request.isAsync() 表示的是当前请求是否是异步请求
+             * 这个步骤是服务端来控制的，比如 spring 采用 DeferredResult 实现，那么 spring 就会在 request 中标识
+             * 当前这个请求已变成异步，所以这里就会进入分支
+             * 也就是一个请求被标识成异步流程：
+             *  1 首先还是进入上面的 if 分支，然后调用 connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
+             *    将请求传递给后面的 servlet
+             *  2 如果采用 spring 异步，则 spring 会在 request 域中设置当前请求是异步
+             *  3 上面流程执行完后就会进入这个 if 分支判断，自然就进入了内部逻辑
+             */
             if (request.isAsync()) {
                 async = true;
                 ReadListener readListener = req.getReadListener();
@@ -406,11 +422,21 @@ public class CoyoteAdapter implements Adapter {
                 // If an async request was started, is not going to end once
                 // this container thread finishes and an error occurred, trigger
                 // the async error process
+                /**
+                 * 如果启动了异步请求，但该容器线程完成并发生错误后，异步请求不会终止，则触发异步错误进程
+                 */
                 if (!request.isAsyncCompleting() && throwable != null) {
                     request.getAsyncContextInternal().setErrorState(throwable, true);
                 }
             } else {
-                /* 如果为同步请求则直接则直接 flush 并关闭输入|输出流，响应请求方 */
+                /**
+                 *  如果为同步请求则直接则直接 flush 并关闭输入|输出流，响应请求方
+                 *  测试下来，都是 tomcat8 但在不同的小版本中效果不一样：
+                 *      有的是执行 connector.getService().getContainer().getPipeline().getFirst().invoke(request, response) 方法就完成了响应，
+                 *      有的是执行完成后并没有响应，而是要执行下面的 finishRequest finishResponse 才会响应
+                 *  原因是 spring-boot-web 版本导致的，也就是 spring 里面是可以获取输出流，然后直接写入 channel
+                 *  写入的方式原理就是获取 response 的 outputStream 流，然后调用 write+flush 方法
+                 */
                 request.finishRequest();
                 response.finishResponse();
             }

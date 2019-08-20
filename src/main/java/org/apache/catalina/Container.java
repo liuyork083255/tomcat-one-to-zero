@@ -83,6 +83,7 @@ import org.apache.juli.logging.Log;
  *  这四个组件都实现了 {@link Container} 接口
  *
  */
+@SuppressWarnings("all")
 public interface Container extends Lifecycle {
 
 

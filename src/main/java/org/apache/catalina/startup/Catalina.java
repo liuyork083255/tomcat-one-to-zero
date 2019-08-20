@@ -72,6 +72,7 @@ import org.xml.sax.SAXParseException;
  *
  * otz:
  *   tomcat 通过 catalina 提供了一个 shell 程序，用于解析 server.xml 创建各个组件，同时负责启动、停止应用服务器
+ *   启动 web 服务其实只需要启动 server 即可
  *   tomcat 通过 digester 解析 xml 文件，包括 server.xml 以及 web.xml
  *
  *

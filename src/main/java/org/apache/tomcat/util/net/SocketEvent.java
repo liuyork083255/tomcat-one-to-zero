@@ -20,6 +20,10 @@ package org.apache.tomcat.util.net;
  * Defines events that occur per socket that require further processing by the
  * container. Usually these events are triggered by the socket implementation
  * but they may be triggered by the container.
+ *
+ * otz:
+ *  用于标识连接 socket 发生的事件类型
+ *
  */
 public enum SocketEvent {
 
@@ -42,6 +46,9 @@ public enum SocketEvent {
     /**
      * A timeout has occurred and the connection needs to be closed cleanly.
      * Currently this is only used by the Servlet 3.0 async processing.
+     *
+     * otz:
+     *  在 servlet3.0 才有效，标识请求异步超时，需要被关闭
      */
     TIMEOUT,
 

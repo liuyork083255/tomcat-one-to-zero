@@ -199,6 +199,7 @@ public abstract class AbstractEndpoint<S> {
 
     /**
      * Will be set to true whenever the endpoint is paused.
+     * 将在端点暂停时设置为 true
      */
     protected volatile boolean paused = false;
 

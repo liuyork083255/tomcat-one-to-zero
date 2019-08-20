@@ -37,12 +37,18 @@ public abstract class AbstractProcessorLight implements Processor {
     private Set<DispatchType> dispatches = new CopyOnWriteArraySet<>();
 
 
+    /**
+     * {@link org.apache.coyote.http11.Http11Processor} 的父类
+     */
     @Override
     public SocketState process(SocketWrapperBase<?> socketWrapper, SocketEvent status) throws IOException {
 
         SocketState state = SocketState.CLOSED;
         Iterator<DispatchType> dispatches = null;
         do {
+
+            /* 这里的分支默认会进入到下面有注解的 else if 位置 */
+
             if (dispatches != null) {
                 DispatchType nextDispatch = dispatches.next();
                 state = dispatch(nextDispatch.getSocketStatus());
@@ -64,7 +70,7 @@ public abstract class AbstractProcessorLight implements Processor {
             } else if (status == SocketEvent.OPEN_READ) {
                 /**
                  * 这一步执行后，servlet 已经接收到请求并且响应给了前端
-                 * 进入 {@link org.apache.coyote.http11.Http11Processor#service}
+                 * 进入子类 {@link org.apache.coyote.http11.Http11Processor#service}
                  *
                  */
                 state = service(socketWrapper);

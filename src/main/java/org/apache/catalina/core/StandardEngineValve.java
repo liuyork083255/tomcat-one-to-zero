@@ -81,6 +81,7 @@ final class StandardEngineValve extends ValveBase {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, sm.getString("standardEngine.noHost", request.getServerName()));
             return;
         }
+        /* 如果系统配置是支持异步的，那么这里会设置一次 */
         if (request.isAsyncSupported()) {
             request.setAsyncSupported(host.getPipeline().isAsyncSupported());
         }

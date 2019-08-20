@@ -664,6 +664,7 @@ public class Http11Processor extends AbstractProcessor {
         rp.setStage(org.apache.coyote.Constants.STAGE_PARSE);
 
         // Setting up the I/O
+        /* 赋值 socketWrapper，并且设置 输入|输出 buffer */
         setSocketWrapper(socketWrapper);
 
         // Flags
@@ -677,7 +678,9 @@ public class Http11Processor extends AbstractProcessor {
                 sendfileState == SendfileState.DONE && !endpoint.isPaused()) {
 
             // Parsing the request header
+            /* 开始解析请求头 */
             try {
+                /* 解析请求行 */
                 if (!inputBuffer.parseRequestLine(keptAlive)) {
                     if (inputBuffer.getParsingRequestLinePhase() == -1) {
                         return SocketState.UPGRADING;
@@ -686,17 +689,21 @@ public class Http11Processor extends AbstractProcessor {
                     }
                 }
 
+                /* 判断 endpoint 是否已暂停 */
                 if (endpoint.isPaused()) {
                     // 503 - Service unavailable
+                    /* 如果 endpoint 关闭则响应 503 状态码，表示服务不可用 */
                     response.setStatus(503);
                     setErrorState(ErrorState.CLOSE_CLEAN, null);
                 } else {
                     keptAlive = true;
                     // Set this every time in case limit has been changed via JMX
                     request.getMimeHeaders().setLimit(endpoint.getMaxHeaderCount());
+
+                    /* 解析请求头 */
                     if (!inputBuffer.parseHeaders()) {
-                        // We've read part of the request, don't recycle it
-                        // instead associate it with the socket
+                        // We've read part of the request, don't recycle it instead associate it with the socket
+                        /* 请求头已经解析了部分请求，不要回收它，而是将它与套接字关联起来 */
                         openSocket = true;
                         readComplete = false;
                         break;
@@ -783,12 +790,12 @@ public class Http11Processor extends AbstractProcessor {
 
             if (maxKeepAliveRequests == 1) {
                 keepAlive = false;
-            } else if (maxKeepAliveRequests > 0 &&
-                    socketWrapper.decrementKeepAlive() <= 0) {
+            } else if (maxKeepAliveRequests > 0 && socketWrapper.decrementKeepAlive() <= 0) {
                 keepAlive = false;
             }
 
             // Process the request in the adapter
+            /* 在适配器中处理请求 */
             if (getErrorState().isIoAllowed()) {
                 try {
                     rp.setStage(org.apache.coyote.Constants.STAGE_SERVICE);

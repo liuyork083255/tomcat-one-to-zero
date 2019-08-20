@@ -36,6 +36,10 @@ import org.apache.tomcat.util.res.StringManager;
 /**
  * InputBuffer for HTTP that provides request header parsing as well as transfer
  * encoding.
+ *
+ * otz:
+ *  用于 HTTP 的 InputBuffer，它提供请求头解析和传输编码
+ *
  */
 public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler {
 
@@ -118,6 +122,8 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
 
     /**
      * Index of the last active filter.
+     *
+     * 最后一个过滤器的索引
      */
     private int lastActiveFilter;
 
@@ -344,6 +350,11 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
      * the whole line.
      * @return true if data is properly fed; false if no data is available
      * immediately and thread should be freed
+     *
+     * otz:
+     *  读取请求行
+     *  此函方法用于 HTTP 请求头解析期间，不要使用它读取请求体。
+     *
      */
     boolean parseRequestLine(boolean keptAlive) throws IOException {
 
@@ -361,8 +372,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                 // Read new bytes if needed
                 if (byteBuffer.position() >= byteBuffer.limit()) {
                     if (keptAlive) {
-                        // Haven't read any request data yet so use the keep-alive
-                        // timeout.
+                        // Haven't read any request data yet so use the keep-alive timeout.
                         wrapper.setReadTimeout(wrapper.getEndpoint().getKeepAliveTimeout());
                     }
                     if (!fill(false)) {
@@ -560,13 +570,16 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
             parsingRequestLineStart = 0;
             return true;
         }
-        throw new IllegalStateException(
-                "Invalid request line parse phase:" + parsingRequestLinePhase);
+        throw new IllegalStateException("Invalid request line parse phase:" + parsingRequestLinePhase);
     }
 
 
     /**
      * Parse the HTTP headers.
+     *
+     * otz:
+     *  解析请求头
+     *
      */
     boolean parseHeaders() throws IOException {
         if (!parsingHeader) {
@@ -697,8 +710,9 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         wrapper = socketWrapper;
         wrapper.setAppReadBufHandler(this);
 
-        int bufLength = headerBufferSize +
-                wrapper.getSocketBufferHandler().getReadBuffer().capacity();
+        int bufLength = headerBufferSize + wrapper.getSocketBufferHandler().getReadBuffer().capacity();
+
+        /* 如果 buffer 为空或者空间不足，则重新分配 */
         if (byteBuffer == null || byteBuffer.capacity() < bufLength) {
             byteBuffer = ByteBuffer.allocate(bufLength);
             byteBuffer.position(0).limit(0);

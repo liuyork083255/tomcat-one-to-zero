@@ -31,8 +31,16 @@ import javax.management.ObjectName;
  * RequestProcessorMX ).
  *
  * @author Costin Manolache
+ *
+ * otz:
+ *  1 封装了请求 request 基本信息
+ *  2 统计了所有次数 {@link #requestCount}
+ *  3 todo
+ *
+ *
  */
 public class RequestInfo  {
+
     private RequestGroupInfo global=null;
 
     // ----------------------------------------------------------- Constructors

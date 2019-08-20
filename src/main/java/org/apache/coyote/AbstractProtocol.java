@@ -46,6 +46,13 @@ import org.apache.tomcat.util.net.SocketEvent;
 import org.apache.tomcat.util.net.SocketWrapperBase;
 import org.apache.tomcat.util.res.StringManager;
 
+/**
+ *
+ * connector 核心的组件依赖 ProtocolHandler
+ * 而最长见的 ProtocolHandler 实现就是 {@link org.apache.coyote.http11.Http11NioProtocol}
+ *
+ */
+@SuppressWarnings("all")
 public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegistration {
 
     /**
@@ -714,8 +721,10 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                 return SocketState.CLOSED;
             }
 
+            /** 这里返回的是 NioChannel 对象，因为 SocketWrapperBase 就是 {@link org.apache.tomcat.util.net.NioEndpoint.NioSocketWrapper} */
             S socket = wrapper.getSocket();
 
+            /* 通常都是 null */
             Processor processor = connections.get(socket);
 
             // Async timeouts are calculated on a dedicated thread and then
@@ -739,6 +748,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
             ContainerThreadMarker.set();
 
             try {
+                /* 正常情况这个 if 分支不会进入 */
                 if (processor == null) {
                     String negotiatedProtocol = wrapper.getNegotiatedProtocol();
                     // OpenSSL typically returns null whereas JSSE typically
@@ -771,6 +781,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                     }
                 }
                 if (processor == null) {
+                    /** 复用一个 processor，类型是 {@link org.apache.coyote.http11.Http11Processor} */
                     processor = recycledProcessors.pop();
                 }
                 if (processor == null) {
@@ -778,14 +789,19 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                     register(processor);
                 }
 
+                /* 设置此 HTTP 连接的 SSL 信息 */
                 processor.setSslSupport(wrapper.getSslSupport(getProtocol().getClientCertProvider()));
 
                 // Associate the processor with the connection
+                /* 保存当前的 socket 和 processor 的映射关系 */
                 connections.put(socket, processor);
 
                 SocketState state = SocketState.CLOSED;
                 do {
-                    /** 这一步执行后，servlet 已经接收到请求并且响应给了调用方 */
+                    /**
+                     * 这一步执行后，servlet 已经接收到请求并且响应给了调用方，
+                     * 该 processor 是 {@link org.apache.coyote.http11.Http11Processor}
+                     */
                     state = processor.process(wrapper, status);
 
                     if (state == SocketState.UPGRADING) {
@@ -846,7 +862,9 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                 } else if (state == SocketState.OPEN) {
                     // In keep-alive but between requests. OK to recycle
                     // processor. Continue to poll for the next request.
+                    /** 正常处理完请求后，移除映射关系 */
                     connections.remove(socket);
+                    /** 回收 processor */
                     release(processor);
                     wrapper.registerReadInterest();
                 } else if (state == SocketState.SENDFILE) {

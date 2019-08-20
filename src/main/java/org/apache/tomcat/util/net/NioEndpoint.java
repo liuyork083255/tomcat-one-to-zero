@@ -1745,13 +1745,14 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
                 try {
                     if (key != null) {
+                        /* socket 是否完成握手，正常情况都是完成的 */
                         if (socket.isHandshakeComplete()) {
-                            // No TLS handshaking required. Let the handler
-                            // process this socket / event combination.
+                            // No TLS handshaking required. Let the handler process this socket / event combination.
+                            /* 不需要握手。让处理程序处理这个套 接字/事件 组合。 */
                             handshake = 0;
                         } else if (event == SocketEvent.STOP || event == SocketEvent.DISCONNECT || event == SocketEvent.ERROR) {
-                            // Unable to complete the TLS handshake. Treat it as
-                            // if the handshake failed.
+                            // Unable to complete the TLS handshake. Treat it as if the handshake failed.
+                            /* 无法完成TLS握手，标记握手失败 */
                             handshake = -1;
                         } else {
                             handshake = socket.handshake(key.isReadable(), key.isWritable());
@@ -1772,19 +1773,29 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                     handshake = -1;
                 }
 
+                /* 握手正常，处理请求 */
                 if (handshake == 0) {
                     SocketState state = SocketState.OPEN;
                     // Process the request from this socket
                     /* 处理来自此套接字的请求 */
 
                     if (event == null) {
+                        /** 核心处理逻辑，完成请求并且完成响应 */
                         state = getHandler().process(socketWrapper, SocketEvent.OPEN_READ);
                     } else {
+                        /**
+                         * 核心处理逻辑，完成请求并且完成响应
+                         * getHandler 返回 {@link org.apache.coyote.AbstractProtocol.ConnectionHandler}
+                         * 所以进入 {@link org.apache.coyote.AbstractProtocol.ConnectionHandler#process}
+                         */
                         state = getHandler().process(socketWrapper, event);
                     }
+
+                    /* process 处理完成后如果返回关闭状态，则将连接关闭 */
                     if (state == SocketState.CLOSED) {
                         close(socket, key);
                     }
+
                 } else if (handshake == -1 ) {
                     getHandler().process(socketWrapper, SocketEvent.CONNECT_FAIL);
                     close(socket, key);
