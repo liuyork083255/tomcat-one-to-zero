@@ -271,6 +271,7 @@ public class Connector extends LifecycleMBeanBase  {
 
     protected static final HashMap<String,String> replacements = new HashMap<>();
     static {
+        /* 之所以说 acceptCount 就是 backlog，因为这里 tomcat 将参数名称进行了一次转换 */
         replacements.put("acceptCount", "backlog");
         replacements.put("connectionLinger", "soLinger");
         replacements.put("connectionTimeout", "soTimeout");
