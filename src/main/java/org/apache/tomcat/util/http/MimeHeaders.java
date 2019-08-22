@@ -99,9 +99,10 @@ public class MimeHeaders {
 
     /**
      * The header fields.
+     *
+     * 请求头名称和请求头值
      */
-    private MimeHeaderField[] headers = new
-        MimeHeaderField[DEFAULT_HEADER_SIZE];
+    private MimeHeaderField[] headers = new MimeHeaderField[DEFAULT_HEADER_SIZE];
 
     /**
      * The current number of header fields.

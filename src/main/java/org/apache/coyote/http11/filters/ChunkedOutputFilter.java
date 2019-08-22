@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 import org.apache.coyote.Response;
+import org.apache.coyote.http11.Http11OutputBuffer;
 import org.apache.coyote.http11.HttpOutputBuffer;
 import org.apache.coyote.http11.OutputFilter;
 import org.apache.tomcat.util.buf.ByteChunk;
@@ -163,6 +164,9 @@ public class ChunkedOutputFilter implements OutputFilter {
     }
 
 
+    /**
+     * 在 {@link Http11OutputBuffer#flush()} 被调用
+     */
     @Override
     public void flush() throws IOException {
         // No data buffered in this filter. Flush next buffer.

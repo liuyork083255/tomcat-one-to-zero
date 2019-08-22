@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 
 import org.apache.coyote.ActionCode;
 import org.apache.coyote.Response;
+import org.apache.coyote.http11.filters.ChunkedOutputFilter;
 import org.apache.tomcat.util.buf.ByteChunk;
 import org.apache.tomcat.util.buf.MessageBytes;
 import org.apache.tomcat.util.http.HttpMessages;
@@ -243,6 +244,8 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
      * Flush the response.
      *
      * @throws IOException an underlying I/O error occurred
+     *
+     * 在 {@link Http11Processor#flush()} 中被调用
      */
     @Override
     public void flush() throws IOException {
@@ -641,6 +644,9 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
             socketWrapper.flush(true);
         }
 
+        /**
+         * 在 {@link ChunkedOutputFilter#flush()}中被调用
+         */
         @Override
         public void flush() throws IOException {
             socketWrapper.flush(isBlocking());

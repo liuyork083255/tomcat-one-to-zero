@@ -51,8 +51,7 @@ public final class IntrospectionUtils {
     public static boolean setProperty(Object o, String name, String value,
             boolean invokeSetProperty) {
         if (log.isDebugEnabled())
-            log.debug("IntrospectionUtils: setProperty(" +
-                    o.getClass() + " " + name + "=" + value + ")");
+            log.debug("IntrospectionUtils: setProperty(" + o.getClass() + " " + name + "=" + value + ")");
 
         String setter = "set" + capitalize(name);
 

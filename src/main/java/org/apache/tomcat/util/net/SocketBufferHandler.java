@@ -55,7 +55,9 @@ public class SocketBufferHandler {
         setReadBufferConfiguredForWrite(false);
     }
 
-
+    /**
+     * 主要是设置 readBuffer 的读写状态吧，因为读写时需要进行翻转
+     */
     private void setReadBufferConfiguredForWrite(boolean readBufferConFiguredForWrite) {
         // NO-OP if buffer is already in correct state
         if (this.readBufferConfiguredForWrite != readBufferConFiguredForWrite) {

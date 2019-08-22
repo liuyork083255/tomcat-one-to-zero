@@ -41,6 +41,7 @@ import org.apache.tomcat.util.res.StringManager;
  *  用于 HTTP 的 InputBuffer，它提供请求头解析和传输编码
  *
  */
+@SuppressWarnings("all")
 public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler {
 
     // -------------------------------------------------------------- Constants
@@ -64,6 +65,8 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
 
     /**
      * Headers of the associated request.
+     *
+     * 用于保存请求头信息
      */
     private final MimeHeaders headers;
 
@@ -72,6 +75,8 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
 
     /**
      * State.
+     * 标记请求头解析状态
+     * 解析成功则状态设置为 false，反之 true
      */
     private boolean parsingHeader;
 
@@ -142,8 +147,8 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
     private final HttpParser httpParser;
 
     /**
-     * Maximum allowed size of the HTTP request line plus headers plus any
-     * leading blank lines.
+     * Maximum allowed size of the HTTP request line plus headers plus any leading blank lines.
+     * 默认8K，注释解释的是 请求行 + 请求头 + 空行 最大值不能超过该值
      */
     private final int headerBufferSize;
 
@@ -375,6 +380,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                         // Haven't read any request data yet so use the keep-alive timeout.
                         wrapper.setReadTimeout(wrapper.getEndpoint().getKeepAliveTimeout());
                     }
+                    /** 从 channel 中读取数据到 ByteBuffer 中 */
                     if (!fill(false)) {
                         // A read is pending, so no longer in initial state
                         parsingRequestLinePhase = 1;
@@ -588,7 +594,15 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
 
         HeaderParseStatus status = HeaderParseStatus.HAVE_MORE_HEADERS;
 
+        /**
+         * 刚开始 byteBuffer 的 position 位置是跳过了请求行，从第一个请求头开始
+         */
+
         do {
+            /**
+             * 这里采用一个一个请求头解析，
+             * 循环一次解析一个请求头，并且将之保存在 {@link headers} 里面
+             */
             status = parseHeader();
             // Checking that
             // (1) Headers plus request line size does not exceed its limit
@@ -598,6 +612,11 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
             // limitation to enforce the meaning of headerBufferSize
             // From the way how buf is allocated and how blank lines are being
             // read, it should be enough to check (1) only.
+            /**
+             * 此时 position 是跳过请求行，并且加上解析的第 N 个头信息长度
+             * 所以 headerBufferSize 就是限制 请求行 + 请求头 + 空行 的总长度
+             * 一旦解析长度超过了阈值，直接不在解析，抛出异常
+             */
             if (byteBuffer.position() > headerBufferSize || byteBuffer.capacity() - byteBuffer.position() < socketReadBufferSize) {
                 throw new IllegalArgumentException(sm.getString("iib.requestheadertoolarge.error"));
             }
@@ -728,6 +747,8 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
      *
      * @return <code>true</code> if more data was added to the input buffer
      *         otherwise <code>false</code>
+     *
+     * 在 {@link #parseRequestLine} 中被调用
      */
     private boolean fill(boolean block) throws IOException {
 
@@ -748,6 +769,8 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
             byteBuffer.position(byteBuffer.limit());
         }
         byteBuffer.limit(byteBuffer.capacity());
+
+        /* 调用 NioEndpoint 中的读取方法 */
         int nRead = wrapper.read(block, byteBuffer);
         byteBuffer.limit(byteBuffer.position()).reset();
         if (nRead > 0) {

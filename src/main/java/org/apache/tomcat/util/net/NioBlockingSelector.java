@@ -46,12 +46,18 @@ public class NioBlockingSelector {
 
     private final SynchronizedStack<KeyReference> keyReferenceStack = new SynchronizedStack<>();
 
+    /**
+     * 这个 selector 就是 BlockPoller 中的 selector
+     */
     protected Selector sharedSelector;
 
     protected BlockPoller poller;
     public NioBlockingSelector() {
     }
 
+    /**
+     * {@link NioSelectorPool#open()} 中被调用
+     */
     public void open(Selector selector) {
         sharedSelector = selector;
         poller = new BlockPoller();
@@ -81,10 +87,11 @@ public class NioBlockingSelector {
      * @throws SocketTimeoutException if the write times out
      * @throws IOException if an IO Exception occurs in the underlying socket logic
      */
-    public int write(ByteBuffer buf, NioChannel socket, long writeTimeout)
-            throws IOException {
+    public int write(ByteBuffer buf, NioChannel socket, long writeTimeout) throws IOException {
         SelectionKey key = socket.getIOChannel().keyFor(socket.getPoller().getSelector());
-        if ( key == null ) throw new IOException("Key no longer registered");
+        if ( key == null ) {
+            throw new IOException("Key no longer registered");
+        }
         KeyReference reference = keyReferenceStack.pop();
         if (reference == null) {
             reference = new KeyReference();
@@ -97,9 +104,24 @@ public class NioBlockingSelector {
         try {
             while ( (!timedout) && buf.hasRemaining()) {
                 if (keycount > 0) { //only write if we were registered for a write
+                    /**
+                     * 这里是将响应体写入 ByteBuffer 中，返回写入字节数
+                     *
+                     * 这里需要注意一点：在和 spring-boot-web 1.5 版本测试中，tomcat写入数据分为两次
+                     *  一次是写入真实响应数据，
+                     *  二次是写入 特殊的5个字节，new byte[]{48,13,10,13,10}，也就是:"0\r\n\r\n"
+                     *  写入第一次的时候是不会发送给 client，一旦写入 "0\r\n\r\n" 就会立马发送
+                     *  debug 测试下来也是这样的，比如直接就写入 "0\r\n\r\n" 也会立即响应给 client
+                     *
+                     * 上面在 spring-boot-web 2.0+ 版本中不会出现第二次的特殊字符写入，而是直接将数据发送出去了
+                     * 自己在用 SocketChannel 测试的时候，也发现不管写入上面数据，一旦调用 write，就会将数据发送出去
+                     *
+                     *
+                     */
                     int cnt = socket.write(buf); //write the data
-                    if (cnt == -1)
+                    if (cnt == -1){
                         throw new EOFException();
+                    }
                     written += cnt;
                     if (cnt > 0) {
                         time = System.currentTimeMillis(); //reset our timeout timer
@@ -126,17 +148,26 @@ public class NioBlockingSelector {
                     att.resetWriteLatch();
                 }
 
-                if (writeTimeout > 0 && (keycount == 0))
+                /** 计算写入时间是否发生了超时 */
+                if (writeTimeout > 0 && (keycount == 0)){
                     timedout = (System.currentTimeMillis() - time) >= writeTimeout;
+                }
             } //while
-            if (timedout)
+            /** 超时异常 */
+            if (timedout){
                 throw new SocketTimeoutException();
+            }
         } finally {
+            /**
+             * todo
+             * 貌似将 selector 的 写事件 去除
+             *  */
             poller.remove(att,SelectionKey.OP_WRITE);
             if (timedout && reference.key!=null) {
                 poller.cancelKey(reference.key);
             }
             reference.key = null;
+            /* 缓存对象 */
             keyReferenceStack.push(reference);
         }
         return written;

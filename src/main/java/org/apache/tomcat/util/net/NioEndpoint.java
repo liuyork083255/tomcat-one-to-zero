@@ -107,7 +107,8 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
     private volatile ServerSocketChannel serverSock = null;
 
     /**
-     *
+     * 用于停止服务关闭资源使用，关闭线程等待 poller 线程关闭
+     * poller 线程完成关闭则 count down 一次
      */
     private volatile CountDownLatch stopLatch = null;
 
@@ -137,12 +138,13 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         final String selectorPoolName = "selectorPool.";
         try {
             if (name.startsWith(selectorPoolName)) {
+                /* 通过反射设置对象的属性值 */
                 return IntrospectionUtils.setProperty(selectorPool, name.substring(selectorPoolName.length()), value);
             } else {
                 return super.setProperty(name, value);
             }
-        }catch ( Exception x ) {
-            log.error("Unable to set attribute \""+name+"\" to \""+value+"\"",x);
+        } catch (Exception x) {
+            log.error("Unable to set attribute \"" + name + "\" to \"" + value + "\"", x);
             return false;
         }
     }
@@ -293,7 +295,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         // Initialize SSL if needed
         initialiseSsl();
 
-        // TODO: 2019/8/11
+        /**
+         * 启动 {@link NioSelectorPool#blockingSelector} 中的 poller 线程
+         * 也就是 {@link NioBlockingSelector.BlockPoller} 线程
+         */
         selectorPool.open();
     }
 
@@ -457,7 +462,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
              */
             socket.configureBlocking(false);
             Socket sock = socket.socket();
-            /* 设置 nio socket 属性，tcp 层属性，是否长连接 keepAlive 也是在这里设置 */
+            /* 设置 nio socket 属性，tcp 层属性 */
             socketProperties.setProperties(sock);
 
             /** 下面代码则是将 {@link SocketChannel} 对象封装成 {@link NioChannel} 对象 */
@@ -1142,12 +1147,12 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
                             /*
                              * 判断是否是写事件
-                             * 需要注意:如果注册了 write 事件，那么内核会自动判断写入缓存区 buffer 是否可写，如果可先就会返回 true
+                             * 需要注意:如果注册了 write 事件，那么内核会自动判断写入缓存区 buffer 是否可写，如果可写就会返回 true
                              *  所以如果注册了这个事件，那么就算用户没有调用 write 方法，只要缓冲区非满，select操作都会返回写事件
                              *  所以一般的做法是如果用户写入了数据，那么就注册一个 write 事件，处理完成后记得取消 write 事件即可
                              *  然后执行 select 阻塞
                              *  好处是:如果缓冲区满了，当前线程不会阻塞，并且当前 write 事件还在 selector 上
-                             *        如果缓冲区非满，那么 isWritable 方法就会返回 true，进入用户代码分支，但是用户记得
+                             *         如果缓冲区非满，那么 isWritable 方法就会返回 true，进入用户代码分支，但是用户记得
                              *              每次处理完成后取消 write 事件即可，否则下次 select 操作还会返回 写事件
                              * */
                             if (!closeSocket && sk.isWritable()) {
@@ -1372,8 +1377,15 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
     }
 
     // ---------------------------------------------------- Key Attachment Class
+
+    /**
+     * 所有读操作和写操作都是调用这个类的 read | write
+     */
     public static class NioSocketWrapper extends SocketWrapperBase<NioChannel> {
 
+        /**
+         * 这个 pool 就是 {@link NioEndpoint#selectorPool}
+         */
         private final NioSelectorPool pool;
 
         private Poller poller = null;
@@ -1408,7 +1420,9 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
             if ( latch == null || latch.getCount() == 0 ) {
                 return new CountDownLatch(cnt);
             }
-            else throw new IllegalStateException("Latch must be at count 0 or null.");
+            else {
+                throw new IllegalStateException("Latch must be at count 0 or null.");
+            }
         }
         public void startReadLatch(int cnt) { readLatch = startLatch(readLatch,cnt);}
         public void startWriteLatch(int cnt) { writeLatch = startLatch(writeLatch,cnt);}
@@ -1436,17 +1450,23 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         public boolean isReadyForRead() throws IOException {
             socketBufferHandler.configureReadBufferForRead();
 
+            /* 返回 position 和 limit 之间的元素个数 */
             if (socketBufferHandler.getReadBuffer().remaining() > 0) {
                 return true;
             }
 
             fillReadBuffer(false);
 
+            /* 返回 position 位置 */
             boolean isReady = socketBufferHandler.getReadBuffer().position() > 0;
             return isReady;
         }
 
 
+        /**
+         * 这个 read 方法是在 ajp 或者升级协议里面才会被调用
+         * nio-http11 不会执行
+         */
         @Override
         public int read(boolean block, byte[] b, int off, int len) throws IOException {
             int nRead = populateReadBuffer(b, off, len);
@@ -1476,8 +1496,13 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         }
 
 
+        /**
+         * 读取数据默认该方法最先被调用
+         * 该方法在 {@link org.apache.coyote.http11.Http11InputBuffer#fill} 中被调用
+         */
         @Override
         public int read(boolean block, ByteBuffer to) throws IOException {
+            /* 还不清楚作用，测试下来返回 0 */
             int nRead = populateReadBuffer(to);
             if (nRead > 0) {
                 return nRead;
@@ -1491,13 +1516,18 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
             }
 
             // The socket read buffer capacity is socket.appReadBufSize
+            /* limit 大小默认 8K */
             int limit = socketBufferHandler.getReadBuffer().capacity();
+
+            /* to.remaining 默认大小 16K */
             if (to.remaining() >= limit) {
                 to.limit(to.position() + limit);
+                /**
+                 * 读取数据到 ByteBuffer 中
+                 */
                 nRead = fillReadBuffer(block, to);
-                if (log.isDebugEnabled()) {
-                    log.debug("Socket: [" + this + "], Read direct from socket: [" + nRead + "]");
-                }
+
+                /* 更新最后读取数据时间 */
                 updateLastRead();
             } else {
                 // Fill the read buffer as best we can.
@@ -1535,9 +1565,16 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         }
 
 
+        /**
+         * 从 channel 中将请求数据读取数据到 ByteBuffer 中
+         * 返回读取的个数
+         */
         private int fillReadBuffer(boolean block, ByteBuffer to) throws IOException {
             int nRead;
             NioChannel channel = getSocket();
+            /**
+             * 现在测试下来，如果一个请求体的总大小小于8K，那么是不会进入这个分支的，也就是 block = false
+             */
             if (block) {
                 Selector selector = null;
                 try {
@@ -1546,8 +1583,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                     // Ignore
                 }
                 try {
-                    NioSocketWrapper att = (NioSocketWrapper) channel
-                            .getAttachment();
+                    NioSocketWrapper att = (NioSocketWrapper) channel.getAttachment();
                     if (att == null) {
                         throw new IOException("Key must be cancelled.");
                     }
@@ -1558,6 +1594,30 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                     }
                 }
             } else {
+                /* 从 channel 中读取数据 */
+                /**
+                 * 读取出来的数据就是：
+                 *  请求行 + 请求头 + 请求体
+                 *
+                 *  POST /batchNum/select HTTP/1.1
+                 *  Content-Type: application/json
+                 *  cache-control: no-cache
+                 *  Postman-Token: e8648485-2bb6-48cf-a990-9ec67edfc5d1
+                 *  User-Agent: PostmanRuntime/7.6.0
+                 *  Host: 127.0.0.1:8080
+                 *  cookie: SESSION=2825dd27-791a-41a5-9684-e1ca01795d6c; JSESSIONID=B6722C7B08C7B66DEF38DD4B944FA0CA
+                 *  accept-encoding: gzip, deflate
+                 *  content-length: 39
+                 *  Connection: keep-alive
+                 *
+                 *  {
+                 *  	"rowsOfPage":10,
+                 *  	"currentPage":1
+                 *  }
+                 *
+                 * Note: 这里只会读取 8K 数据，也就是 http 中默认规定请求最大 8K，而且是一次性全部读取出来，
+                 *       然后根据 content-length 判断请求体的大小
+                 */
                 nRead = channel.read(to);
                 if (nRead == -1) {
                     throw new EOFException();
@@ -1567,11 +1627,23 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
         }
 
 
+        /**
+         * 写入数据默认该方法最先被调用
+         * 这个方法会在 {@link SocketWrapperBase#doWrite(boolean)} 中被调用
+         *
+         * @param block 是否采用阻塞模式写入数据，测试下来 默认为：true
+         *
+         * @param from  这个 buffer 中就是业务数据响应的内容，
+         *              响应行 + 响应体 + 空行 + 长度 + 响应体
+         */
         @Override
         protected void doWrite(boolean block, ByteBuffer from) throws IOException {
+            /* 获取写超时，测试下来默认1分钟 */
             long writeTimeout = getWriteTimeout();
+
             Selector selector = null;
             try {
+                /** 获取 selector */
                 selector = pool.get();
             } catch (IOException x) {
                 // Ignore

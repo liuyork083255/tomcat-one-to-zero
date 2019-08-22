@@ -63,6 +63,7 @@ import org.apache.tomcat.util.net.SendfileState;
 import org.apache.tomcat.util.net.SocketWrapperBase;
 import org.apache.tomcat.util.res.StringManager;
 
+@SuppressWarnings("all")
 public class Http11Processor extends AbstractProcessor {
 
     private static final Log log = LogFactory.getLog(Http11Processor.class);
@@ -674,13 +675,37 @@ public class Http11Processor extends AbstractProcessor {
         boolean keptAlive = false;
         SendfileState sendfileState = SendfileState.DONE;
 
-        while (!getErrorState().isError() && keepAlive && !isAsync() && upgradeToken == null &&
-                sendfileState == SendfileState.DONE && !endpoint.isPaused()) {
+        /**
+         * 这个 while 方法很关键
+         * 一次循环下来会从 channel 中读取数据8K，然后调用后续的 container 容器
+         *      如果请求体小于 8K，不会直接退出，这个循环还会执行一次读取操作 fill 方法
+         *      这个时候读取出来的数据肯定为 0，则直接退出循环
+         */
+        while (!getErrorState().isError() && keepAlive && !isAsync() && upgradeToken == null
+                && sendfileState == SendfileState.DONE && !endpoint.isPaused()) {
 
             // Parsing the request header
             /* 开始解析请求头 */
             try {
-                /* 解析请求行 */
+                /**
+                 * 解析请求行
+                 * 这里就会调用 channel 的 read 方法，将请求数据写入 byteBuffer 中
+                 * 这里虽然是处理请求行，但是会一次性读取 8K 数据出来到 byteBuffer 中
+                 *
+                 * Note:
+                 *  这里如何控制只处理请求行？
+                 *  就是通过修改 byteBuffer 的 position 和 limit 指针
+                 *  比如:
+                 *      POST /batchNum/select HTTP/1.1
+                 *      Content-Type: application/json
+                 *      Host: 127.0.0.1:8080
+                 *      accept-encoding: gzip, deflate
+                 *      content-length: 42
+                 *
+                 *  那么此时的 byteBuffer 的 position 就是 32，因为请求行 30 + 两个换行符长度 = 32
+                 *  所以此时 byteBuffer 如果读取就是从 32 开始往后读
+                 *
+                 */
                 if (!inputBuffer.parseRequestLine(keptAlive)) {
                     if (inputBuffer.getParsingRequestLinePhase() == -1) {
                         return SocketState.UPGRADING;
@@ -698,12 +723,17 @@ public class Http11Processor extends AbstractProcessor {
                 } else {
                     keptAlive = true;
                     // Set this every time in case limit has been changed via JMX
+                    /* 设置请求个数，默认最大值 100 个 */
                     request.getMimeHeaders().setLimit(endpoint.getMaxHeaderCount());
 
                     /* 解析请求头 */
                     if (!inputBuffer.parseHeaders()) {
                         // We've read part of the request, don't recycle it instead associate it with the socket
-                        /* 请求头已经解析了部分请求，不要回收它，而是将它与套接字关联起来 */
+                        /**
+                         * 请求头已经解析了部分请求，不要回收它，而是将它与套接字关联起来
+                         * 如果进入这个分支，可以理解出现了拆包现象，因为解析头部信息失败，说明少了数据
+                         * 因为如果出现超长或者容量问题，那么是抛出异常，而不是返回 false
+                         */
                         openSocket = true;
                         readComplete = false;
                         break;
@@ -776,6 +806,11 @@ public class Http11Processor extends AbstractProcessor {
                 // Setting up filters, and parse some request headers
                 rp.setStage(org.apache.coyote.Constants.STAGE_PREPARE);
                 try {
+                    /**
+                     * 设置请求的一些准备工作
+                     * 流程到了这里，说明请求行和请求头都已经解析完成了
+                     * 此时的 byteBuffer 的 position 位置是直接从 空行 后面的请求体开始
+                     */
                     prepareRequest();
                 } catch (Throwable t) {
                     ExceptionUtils.handleThrowable(t);
@@ -996,16 +1031,17 @@ public class Http11Processor extends AbstractProcessor {
             }
         }
 
+        /** 获取所有已经解析的请求头 */
         MimeHeaders headers = request.getMimeHeaders();
 
         // Check connection header
+        /** 获取连接头 Connection : keep-alive */
         MessageBytes connectionValueMB = headers.getValue(Constants.CONNECTION);
         if (connectionValueMB != null && !connectionValueMB.isNull()) {
             ByteChunk connectionValueBC = connectionValueMB.getByteChunk();
             if (findBytes(connectionValueBC, Constants.CLOSE_BYTES) != -1) {
                 keepAlive = false;
-            } else if (findBytes(connectionValueBC,
-                                 Constants.KEEPALIVE_BYTES) != -1) {
+            } else if (findBytes(connectionValueBC, Constants.KEEPALIVE_BYTES) != -1) {
                 keepAlive = true;
             }
         }
@@ -1051,8 +1087,7 @@ public class Http11Processor extends AbstractProcessor {
             badRequest("http11processor.request.noHostHeader");
         }
 
-        // Check for an absolute-URI less the query string which has already
-        // been removed during the parsing of the request line
+        // Check for an absolute-URI less the query string which has already been removed during the parsing of the request line
         ByteChunk uriBC = request.requestURI().getByteChunk();
         byte[] uriB = uriBC.getBytes();
         if (uriBC.startsWithIgnoreCase("http", 0)) {
@@ -1569,6 +1604,9 @@ public class Http11Processor extends AbstractProcessor {
     }
 
 
+    /**
+     * 在 {@link AbstractProcessor#action(ActionCode, Object)} 中被调用
+     */
     @Override
     protected final void flush() throws IOException {
         outputBuffer.flush();

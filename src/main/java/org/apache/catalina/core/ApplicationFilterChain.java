@@ -16,24 +16,18 @@
  */
 package org.apache.catalina.core;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.util.Set;
-
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.catalina.Globals;
 import org.apache.catalina.security.SecurityUtil;
 import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.res.StringManager;
+
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.util.Set;
 
 /**
  * Implementation of <code>javax.servlet.FilterChain</code> used to manage
@@ -238,8 +232,10 @@ public final class ApplicationFilterChain implements FilterChain {
                                            args,
                                            principal);
             } else {
-                /*
+                /**
                  * 在和 spring 结合的时候，这个 servlet 就是大名鼎鼎的 DispatcherServlet
+                 * 在 servlet 里面其实就会调用 response 向 channel 写入数据
+                 * 也就是 {@link org.apache.tomcat.util.net.NioChannel#write}
                  */
                 servlet.service(request, response);
             }

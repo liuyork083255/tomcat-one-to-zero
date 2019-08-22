@@ -1,5 +1,3 @@
-package org.apache;
-
 /**
  * 性能优化
  *

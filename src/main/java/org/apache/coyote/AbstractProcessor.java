@@ -363,6 +363,9 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
     }
 
 
+    /**
+     * 在 {@link Response#action(ActionCode, Object)} 中被调用
+     */
     @Override
     public final void action(ActionCode actionCode, Object param) {
         switch (actionCode) {
@@ -396,6 +399,7 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
         case CLIENT_FLUSH: {
             action(ActionCode.COMMIT, null);
             try {
+                /** 刷新数据 */
                 flush();
             } catch (IOException e) {
                 setErrorState(ErrorState.CLOSE_CONNECTION_NOW, e);

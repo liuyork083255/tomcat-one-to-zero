@@ -60,6 +60,9 @@ public class NioSelectorPool {
     protected AtomicInteger spare = new AtomicInteger(0);
     protected ConcurrentLinkedQueue<Selector> selectors = new ConcurrentLinkedQueue<>();
 
+    /**
+     * 获取共享的 selector
+     */
     protected Selector getSharedSelector() throws IOException {
         if (SHARED && SHARED_SELECTOR == null) {
             synchronized (NioSelectorPool.class) {
@@ -72,6 +75,9 @@ public class NioSelectorPool {
         return SHARED_SELECTOR;
     }
 
+    /**
+     * 判断是否共享，然后返回 selector 实例
+     */
     public Selector get() throws IOException {
         if (SHARED) {
             return getSharedSelector();
@@ -123,11 +129,16 @@ public class NioSelectorPool {
         }
     }
 
+    /**
+     * 在 Endpoint 启动 bind 环节被调用
+     */
     public void open() throws IOException {
         enabled = true;
         getSharedSelector();
         if (SHARED) {
+            /* 创建 nio 阻塞 selector */
             blockingSelector = new NioBlockingSelector();
+            /* 获取共享 selector，并且启动 block poller 线程 */
             blockingSelector.open(getSharedSelector());
         }
 
@@ -152,6 +163,7 @@ public class NioSelectorPool {
      */
     public int write(ByteBuffer buf, NioChannel socket, Selector selector,
                      long writeTimeout, boolean block) throws IOException {
+        /* 判断是否使用阻塞模式写入数据，测试下来，block = true */
         if (SHARED && block) {
             return blockingSelector.write(buf, socket, writeTimeout);
         }

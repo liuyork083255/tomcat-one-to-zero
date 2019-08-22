@@ -132,6 +132,9 @@ public class NioChannel implements ByteChannel {
     @Override
     public int write(ByteBuffer src) throws IOException {
         checkInterruptStatus();
+        /**
+         * 将相应数据写入 channel
+         */
         return sc.write(src);
     }
 
@@ -145,6 +148,9 @@ public class NioChannel implements ByteChannel {
      */
     @Override
     public int read(ByteBuffer dst) throws IOException {
+        /**
+         * 从 channel 中读取请求数据
+         */
         return sc.read(dst);
     }
 

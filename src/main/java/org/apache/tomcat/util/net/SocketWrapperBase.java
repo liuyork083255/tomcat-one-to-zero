@@ -24,6 +24,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
+import org.apache.coyote.http11.Http11OutputBuffer;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.res.StringManager;
@@ -290,8 +291,11 @@ public abstract class SocketWrapperBase<E> {
     public abstract void setAppReadBufHandler(ApplicationBufferHandler handler);
 
     protected int populateReadBuffer(byte[] b, int off, int len) {
+        /* 设置 read buffer 为读状态 */
         socketBufferHandler.configureReadBufferForRead();
+
         ByteBuffer readBuffer = socketBufferHandler.getReadBuffer();
+        /* 返回 read buffer 中是否还有可读字节个数 */
         int remaining = readBuffer.remaining();
 
         // Is there enough data in the read buffer to satisfy this request?
@@ -311,12 +315,11 @@ public abstract class SocketWrapperBase<E> {
     protected int populateReadBuffer(ByteBuffer to) {
         // Is there enough data in the read buffer to satisfy this request?
         // Copy what data there is in the read buffer to the byte array
+
+        /* 设置 read buffer 为读状态 */
         socketBufferHandler.configureReadBufferForRead();
         int nRead = transfer(socketBufferHandler.getReadBuffer(), to);
 
-        if (log.isDebugEnabled()) {
-            log.debug("Socket: [" + this + "], Read from buffer: [" + nRead + "]");
-        }
         return nRead;
     }
 
@@ -667,6 +670,8 @@ public abstract class SocketWrapperBase<E> {
      *         therefore, the return value should always be <code>false</code>
      *
      * @throws IOException If an IO error occurs during the write
+     *
+     * 会在 {@link Http11OutputBuffer.SocketOutputBuffer#flush()} 中被调用
      */
     public boolean flush(boolean block) throws IOException {
         boolean result = false;
@@ -681,6 +686,9 @@ public abstract class SocketWrapperBase<E> {
     }
 
 
+    /**
+     * 会在 {@link #flush(boolean)} 中被调用
+     */
     protected void flushBlocking() throws IOException {
         doWrite(true);
 
@@ -726,6 +734,8 @@ public abstract class SocketWrapperBase<E> {
      *
      * @throws IOException If an I/O error such as a timeout occurs during the
      *                     write
+     *
+     * 测试下来这个方法会在 {@link #flushBlocking()} 中被调用
      */
     protected void doWrite(boolean block) throws IOException {
         socketBufferHandler.configureWriteBufferForRead();
@@ -1167,6 +1177,9 @@ public abstract class SocketWrapperBase<E> {
         return max;
     }
 
+    /**
+     * 好像是将 from 中可读数据移动到 to 中，如果有的话
+     */
     protected static int transfer(ByteBuffer from, ByteBuffer to) {
         int max = Math.min(from.remaining(), to.remaining());
         if (max > 0) {
