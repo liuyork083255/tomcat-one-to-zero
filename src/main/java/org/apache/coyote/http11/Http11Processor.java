@@ -650,10 +650,6 @@ public class Http11Processor extends AbstractProcessor {
             // 501 - Unimplemented
             response.setStatus(501);
             setErrorState(ErrorState.CLOSE_CLEAN, null);
-            if (log.isDebugEnabled()) {
-                log.debug(sm.getString("http11processor.request.prepare") +
-                          " Unsupported transfer encoding [" + encodingName + "]");
-            }
         }
     }
 

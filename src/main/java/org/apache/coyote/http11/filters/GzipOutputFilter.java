@@ -70,8 +70,7 @@ public class GzipOutputFilter implements OutputFilter {
         if (compressionStream == null) {
             compressionStream = new GZIPOutputStream(fakeOutputStream, true);
         }
-        compressionStream.write(chunk.getBytes(), chunk.getStart(),
-                                chunk.getLength());
+        compressionStream.write(chunk.getBytes(), chunk.getStart(), chunk.getLength());
         return chunk.getLength();
     }
 
@@ -158,8 +157,7 @@ public class GzipOutputFilter implements OutputFilter {
     // ------------------------------------------- FakeOutputStream Inner Class
 
 
-    protected class FakeOutputStream
-        extends OutputStream {
+    protected class FakeOutputStream extends OutputStream {
         protected final ByteBuffer outputChunk = ByteBuffer.allocate(1);
         @Override
         public void write(int b)

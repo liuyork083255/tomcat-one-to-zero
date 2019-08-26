@@ -271,8 +271,14 @@ public class NioSelectorPool {
                 }
                 if (selector != null) {//perform a blocking read
                     //register OP_WRITE to the selector
-                    if (key == null) key = socket.getIOChannel().register(selector, SelectionKey.OP_READ);
-                    else key.interestOps(SelectionKey.OP_READ);
+                    if (key == null) {
+                        key = socket.getIOChannel().register(selector, SelectionKey.OP_READ);
+                    }
+                    else {
+                        key.interestOps(SelectionKey.OP_READ);
+                    }
+
+                    /** 这里体现了阻塞，直接在当前线程调用 selector.select 方法 */
                     if (readTimeout == 0) {
                         timedout = (read == 0);
                     } else if (readTimeout < 0) {

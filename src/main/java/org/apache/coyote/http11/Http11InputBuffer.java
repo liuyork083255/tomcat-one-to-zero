@@ -380,7 +380,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                         // Haven't read any request data yet so use the keep-alive timeout.
                         wrapper.setReadTimeout(wrapper.getEndpoint().getKeepAliveTimeout());
                     }
-                    /** 从 channel 中读取数据到 ByteBuffer 中 */
+                    /** 采用非阻塞方式从 channel 中读取数据到 ByteBuffer 中 */
                     if (!fill(false)) {
                         // A read is pending, so no longer in initial state
                         parsingRequestLinePhase = 1;

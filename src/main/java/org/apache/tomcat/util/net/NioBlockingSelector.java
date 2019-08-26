@@ -16,20 +16,10 @@
  */
 package org.apache.tomcat.util.net;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.nio.ByteBuffer;
-import java.nio.channels.CancelledKeyException;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import org.apache.catalina.connector.OutputBuffer;
+import org.apache.coyote.http11.Http11InputBuffer;
+import org.apache.coyote.http11.Http11OutputBuffer;
+import org.apache.coyote.http11.Http11Processor;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.ExceptionUtils;
@@ -37,6 +27,28 @@ import org.apache.tomcat.util.collections.SynchronizedQueue;
 import org.apache.tomcat.util.collections.SynchronizedStack;
 import org.apache.tomcat.util.net.NioEndpoint.NioSocketWrapper;
 
+import java.io.EOFException;
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
+import java.nio.channels.*;
+import java.util.Iterator;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 阻塞式 selector 辅助类
+ * 通过调试发现，tomcat 在读数据，默认采用 非阻塞，也就是不会用到这个类，
+ * 流程大致为:
+ *      {@link Http11Processor#service} 开始解析请求行 -> {@link Http11InputBuffer#parseRequestLine}调用 fill 传入参数为 false
+ *      最终就会调用 {@link NioEndpoint.NioSocketWrapper#read(boolean, ByteBuffer)}
+ *
+ * 但是写流程默认是采用阻塞模式，就会使用到这个类
+ * 流程大致为：
+ *      从 {@link OutputBuffer#close()} 一直会进入到 {@link Http11OutputBuffer.SocketOutputBuffer#end()}
+ *
+ */
 @SuppressWarnings("all")
 public class NioBlockingSelector {
 
@@ -102,6 +114,7 @@ public class NioBlockingSelector {
         int keycount = 1; //assume we can write
         long time = System.currentTimeMillis(); //start the timeout timer
         try {
+            /** buf.hasRemaining() 在写入数据后，会重置 limit 和 position */
             while ( (!timedout) && buf.hasRemaining()) {
                 if (keycount > 0) { //only write if we were registered for a write
                     /**
@@ -132,14 +145,37 @@ public class NioBlockingSelector {
                         throw new EOFException();
                     }
                     written += cnt;
+                    /**
+                     * 如果有数据写入，则说明本次没有超时，重置超时时间
+                     * 然后继续判断数据有没有写完，因为发送数据可能很大，但是写入缓冲区空间不足，所以需要多次写入
+                     */
                     if (cnt > 0) {
                         time = System.currentTimeMillis(); //reset our timeout timer
                         continue; //we successfully wrote, try again without a selector
                     }
                 }
+                /** 进入这个分支，只有一种情况，那就是写入字节数为 0 */
                 try {
-                    if ( att.getWriteLatch()==null || att.getWriteLatch().getCount()==0) att.startWriteLatch(1);
+                    if ( att.getWriteLatch()==null || att.getWriteLatch().getCount()==0) {
+                        /* 开始一个倒数计数器 */
+                        att.startWriteLatch(1);
+                    }
+
+                    /**
+                     * 如果阻塞写入失败，说明网络有问题或者写入缓冲区 buffer 已满，那么就不应该继续等待，而是注册到阻塞 poller 中
+                     */
                     poller.add(att,SelectionKey.OP_WRITE,reference);
+
+                    /**
+                     * 设置超时时间：阻塞
+                     *
+                     * 流程执行下面的代码则进入阻塞，此时占用的是 worker 线程
+                     * 如果没有设置超时时间，那么永久阻塞，直到被通知被唤醒
+                     * 唤醒有两种:
+                     *      1 超时，默认是 60s，如果没有设置超时，那么是不存在这种情况
+                     *      2 被唤醒是在 {@link NioBlockingSelector.BlockPoller}，也就是发生了可写的事件
+                     *
+                     */
                     if (writeTimeout < 0) {
                         att.awaitWriteLatch(Long.MAX_VALUE,TimeUnit.MILLISECONDS);
                     } else {
@@ -148,6 +184,12 @@ public class NioBlockingSelector {
                 } catch (InterruptedException ignore) {
                     // Ignore
                 }
+
+                /**
+                 * 检查被唤醒机制
+                 *  1 如果是超时唤醒，那么设置 keycount = 0，那么再进入 while 就会判断是否超时，没有超时就会继续注册到 BlockPoller
+                 *  2 如果是在 {@link NioBlockingSelector.BlockPoller} 中被唤醒，那么说明当前 channel 可写，则会进行写流程
+                 */
                 if ( att.getWriteLatch()!=null && att.getWriteLatch().getCount()> 0) {
                     //we got interrupted, but we haven't received notification from the poller.
                     keycount = 0;
@@ -162,6 +204,8 @@ public class NioBlockingSelector {
                     timedout = (System.currentTimeMillis() - time) >= writeTimeout;
                 }
             } //while
+
+
             /** 超时异常 */
             if (timedout){
                 throw new SocketTimeoutException();
@@ -170,7 +214,7 @@ public class NioBlockingSelector {
             /**
              * todo
              * 貌似将 selector 的 写事件 去除
-             *  */
+             */
             poller.remove(att,SelectionKey.OP_WRITE);
             if (timedout && reference.key!=null) {
                 poller.cancelKey(reference.key);
@@ -196,7 +240,7 @@ public class NioBlockingSelector {
      */
     public int read(ByteBuffer buf, NioChannel socket, long readTimeout) throws IOException {
         SelectionKey key = socket.getIOChannel().keyFor(socket.getPoller().getSelector());
-        if ( key == null ) throw new IOException("Key no longer registered");
+
         KeyReference reference = keyReferenceStack.pop();
         if (reference == null) {
             reference = new KeyReference();
@@ -215,7 +259,9 @@ public class NioBlockingSelector {
                     }
                 }
                 try {
-                    if ( att.getReadLatch()==null || att.getReadLatch().getCount()==0) att.startReadLatch(1);
+                    if ( att.getReadLatch()==null || att.getReadLatch().getCount()==0) {
+                        att.startReadLatch(1);
+                    }
                     poller.add(att,SelectionKey.OP_READ, reference);
                     if (readTimeout < 0) {
                         att.awaitReadLatch(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
@@ -277,7 +323,10 @@ public class NioBlockingSelector {
         }
 
         public void add(final NioSocketWrapper key, final int ops, final KeyReference ref) {
-            if ( key == null ) return;
+            if ( key == null ) {
+                return;
+            }
+
             NioChannel nch = key.getSocket();
             final SocketChannel ch = nch.getIOChannel();
             if ( ch == null ) return;
@@ -363,9 +412,13 @@ public class NioBlockingSelector {
                         try {
                             iterator.remove();
                             sk.interestOps(sk.interestOps() & (~sk.readyOps()));
+
+                            /** 通知因为读导致阻塞的 worker */
                             if ( sk.isReadable() ) {
                                 countDown(attachment.getReadLatch());
                             }
+
+                            /** 通知因为写导致阻塞的 worker */
                             if (sk.isWritable()) {
                                 countDown(attachment.getWriteLatch());
                             }
