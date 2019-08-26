@@ -237,6 +237,9 @@ public class OutputBuffer extends Writer {
      * the response has not been committed yet.
      *
      * @throws IOException An underlying IOException occurred
+     *
+     *
+     * 在 {@link org.apache.catalina.connector.Response#finishResponse()} 被调用
      */
     @Override
     public void close() throws IOException {
@@ -279,6 +282,7 @@ public class OutputBuffer extends Writer {
         Request req = (Request) coyoteResponse.getRequest().getNote(CoyoteAdapter.ADAPTER_NOTES);
         req.inputBuffer.close();
 
+        /** 完成真正的响应 */
         coyoteResponse.action(ActionCode.CLOSE, null);
     }
 

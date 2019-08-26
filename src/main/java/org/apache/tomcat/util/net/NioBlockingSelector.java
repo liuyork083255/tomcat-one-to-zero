@@ -108,14 +108,23 @@ public class NioBlockingSelector {
                      * 这里是将响应体写入 ByteBuffer 中，返回写入字节数
                      *
                      * 这里需要注意一点：在和 spring-boot-web 1.5 版本测试中，tomcat写入数据分为两次
-                     *  一次是写入真实响应数据，
-                     *  二次是写入 特殊的5个字节，new byte[]{48,13,10,13,10}，也就是:"0\r\n\r\n"
-                     *  写入第一次的时候是不会发送给 client，一旦写入 "0\r\n\r\n" 就会立马发送
-                     *  debug 测试下来也是这样的，比如直接就写入 "0\r\n\r\n" 也会立即响应给 client
+                     *      一次是写入真实响应数据，
+                     *      二次是写入 特殊的5个字节，new byte[]{48,13,10,13,10}，也就是:"0\r\n\r\n"
+                     *      写入第一次的时候是不会发送给 client，一旦写入 "0\r\n\r\n" 就会立马发送
+                     *      debug 测试下来也是这样的，比如直接就写入 "0\r\n\r\n" 也会立即响应给 client
+                     *      debug 发现 tomcat 在最后会执行一个 flush 操作，就是写入一个 endByteBuffer
+                     *      {@link org.apache.coyote.http11.filters.ChunkedOutputFilter#endChunk}
+                     *
+                     *
+                     *
                      *
                      * 上面在 spring-boot-web 2.0+ 版本中不会出现第二次的特殊字符写入，而是直接将数据发送出去了
                      * 自己在用 SocketChannel 测试的时候，也发现不管写入上面数据，一旦调用 write，就会将数据发送出去
+                     * 后面重新测试了一下，在 2.0.3 版本中还是按照上面 1.5 方式进行写入刷新的
                      *
+                     *  已解决：
+                     *      其实 socket.write 方法调用几次，数据就发送几次，而且每次都发送出去了，只不过客户端会判断是否结束
+                     *      其实跟版本没有关系，而是跟响应方式有关，默认采用 分块编码 响应方式 {@link HttpS}
                      *
                      */
                     int cnt = socket.write(buf); //write the data

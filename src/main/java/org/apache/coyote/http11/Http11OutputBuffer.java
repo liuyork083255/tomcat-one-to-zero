@@ -266,6 +266,7 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
         if (lastActiveFilter == -1) {
             outputStreamOutputBuffer.end();
         } else {
+            /** 进入 {@link ChunkedOutputFilter#end()}  */
             activeFilters[lastActiveFilter].end();
         }
 

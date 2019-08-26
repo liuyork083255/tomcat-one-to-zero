@@ -180,6 +180,7 @@ public class ChunkedOutputFilter implements OutputFilter {
         buffer.doWrite(endChunk);
         endChunk.position(0).limit(endChunk.capacity());
 
+        /** 进入 {@link Http11OutputBuffer.SocketOutputBuffer#end()} */
         buffer.end();
     }
 

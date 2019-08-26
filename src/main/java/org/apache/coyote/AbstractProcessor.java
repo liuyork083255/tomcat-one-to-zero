@@ -384,6 +384,7 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
         case CLOSE: {
             action(ActionCode.COMMIT, null);
             try {
+                /** 响应数据 */
                 finishResponse();
             } catch (CloseNowException cne) {
                 setErrorState(ErrorState.CLOSE_NOW, cne);

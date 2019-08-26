@@ -677,6 +677,7 @@ public abstract class SocketWrapperBase<E> {
         boolean result = false;
         if (block) {
             // A blocking flush will always empty the buffer.
+            /* 阻塞刷新总是清空缓冲区 */
             flushBlocking();
         } else {
             result = flushNonBlocking();
@@ -690,6 +691,7 @@ public abstract class SocketWrapperBase<E> {
      * 会在 {@link #flush(boolean)} 中被调用
      */
     protected void flushBlocking() throws IOException {
+        /* 写入数据 */
         doWrite(true);
 
         if (!nonBlockingWriteBuffer.isEmpty()) {

@@ -200,9 +200,14 @@ public final class Response {
 
     // -------------------- Actions --------------------
 
+    /**
+     * 一次请求和响应该方法会被调用多次
+     * 其中真正响应的调用是 {@link org.apache.catalina.connector.OutputBuffer#close()}
+     */
     public void action(ActionCode actionCode, Object param) {
         if (hook != null) {
             if (param == null) {
+                /* 执行该方法进行响应 */
                 hook.action(actionCode, this);
             } else {
                 hook.action(actionCode, param);

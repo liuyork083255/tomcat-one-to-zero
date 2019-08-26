@@ -438,6 +438,10 @@ public class Response implements HttpServletResponse {
      * stream or writer, in a single operation.
      *
      * @exception IOException if an input/output error occurs
+     *
+     * 在 {@link CoyoteAdapter#service(org.apache.coyote.Request, org.apache.coyote.Response)} 中被调用
+     * 执行 response.finishResponse
+     *
      */
     public void finishResponse() throws IOException {
         // Writing leftover bytes

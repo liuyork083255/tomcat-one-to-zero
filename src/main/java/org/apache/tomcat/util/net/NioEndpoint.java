@@ -1649,6 +1649,23 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                 // Ignore
             }
             try {
+                /**
+                 *
+                 * 真正响应体数据结构：
+                 *  响应行 + 响应头 + 空行 + 响应体长度(16进制) + 响应体内容
+                 *  e.g.
+                 *      HTTP/1.1 200
+                 *      Content-Type: application/json;charset=UTF-8
+                 *      Transfer-Encoding: chunked
+                 *      Date: Mon, 26 Aug 2019 03:17:37 GMT
+                 *
+                 *      31
+                 *      {"id":1,"username":"LiuYork","password":"123456"}
+                 *
+                 *  31的16进制为 49，而 json 长度就是 49
+                 *
+                 *
+                 */
                 pool.write(from, getSocket(), selector, writeTimeout, block);
                 if (block) {
                     // Make sure we are flushed
