@@ -137,6 +137,7 @@ public class IdentityInputFilter implements InputFilter, ApplicationBufferHandle
 
         if (contentLength >= 0) {
             if (remaining > 0) {
+                /** 进入 {@link org.apache.coyote.http11.Http11InputBuffer.SocketInputBuffer#doRead(ApplicationBufferHandler)} */
                 int nRead = buffer.doRead(handler);
                 if (nRead > remaining) {
                     // The chunk is longer than the number of bytes remaining

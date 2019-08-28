@@ -33,6 +33,7 @@ import org.apache.tomcat.util.res.StringManager;
  *
  * @author Remy Maucherat
  */
+@SuppressWarnings("all")
 public class CoyoteInputStream extends ServletInputStream {
 
     protected static final StringManager sm = StringManager.getManager(CoyoteInputStream.class);
@@ -67,12 +68,12 @@ public class CoyoteInputStream extends ServletInputStream {
     public int read() throws IOException {
         checkNonBlockingRead();
 
+        /* 基本都是进入 else 分支 */
         if (SecurityUtil.isPackageProtectionEnabled()) {
 
             try {
                 Integer result = AccessController
                         .doPrivileged(new PrivilegedExceptionAction<Integer>() {
-
                             @Override
                             public Integer run() throws IOException {
                                 Integer integer = Integer.valueOf(ib.readByte());

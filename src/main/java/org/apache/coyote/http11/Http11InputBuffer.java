@@ -271,6 +271,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         if (lastActiveFilter == -1)
             return inputStreamInputBuffer.doRead(handler);
         else
+            /** 进入 {@link org.apache.coyote.http11.filters.IdentityInputFilter#doRead(ApplicationBufferHandler)} */
             return activeFilters[lastActiveFilter].doRead(handler);
 
     }
@@ -1124,8 +1125,8 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         public int doRead(ApplicationBufferHandler handler) throws IOException {
 
             if (byteBuffer.position() >= byteBuffer.limit()) {
-                // The application is reading the HTTP request body which is
-                // always a blocking operation.
+                // The application is reading the HTTP request body which is always a blocking operation.
+                /* 应用程序正在读取HTTP请求体，该请求体始终是一个阻塞操作 */
                 if (!fill(true))
                     return -1;
             }

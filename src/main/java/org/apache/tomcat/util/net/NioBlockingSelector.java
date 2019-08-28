@@ -46,7 +46,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * 但是写流程默认是采用阻塞模式，就会使用到这个类
  * 流程大致为：
- *      从 {@link OutputBuffer#close()} 一直会进入到 {@link Http11OutputBuffer.SocketOutputBuffer#end()}
+ *      从 {@link OutputBuffer#close()} 一直会进入到 {@link Http11OutputBuffer.SocketOutputBuffer#end()} 发现传入的参数是 true
+ *      则表明本次写入操作为阻塞方式
  *
  */
 @SuppressWarnings("all")
@@ -258,6 +259,7 @@ public class NioBlockingSelector {
                         break;
                     }
                 }
+                /** 和写操作一样，读操作也有阻塞模式，只不过默认采用非阻塞，流程进入到这里，说明读取格式为0，需要阻塞当前线程 */
                 try {
                     if ( att.getReadLatch()==null || att.getReadLatch().getCount()==0) {
                         att.startReadLatch(1);
@@ -271,6 +273,7 @@ public class NioBlockingSelector {
                 } catch (InterruptedException ignore) {
                     // Ignore
                 }
+
                 if ( att.getReadLatch()!=null && att.getReadLatch().getCount()> 0) {
                     //we got interrupted, but we haven't received notification from the poller.
                     keycount = 0;
@@ -279,6 +282,7 @@ public class NioBlockingSelector {
                     keycount = 1;
                     att.resetReadLatch();
                 }
+
                 if (readTimeout >= 0 && (keycount == 0))
                     timedout = (System.currentTimeMillis() - time) >= readTimeout;
             } //while
@@ -310,7 +314,9 @@ public class NioBlockingSelector {
         }
 
         public void wakeup() {
-            if (wakeupCounter.addAndGet(1)==0) selector.wakeup();
+            if (wakeupCounter.addAndGet(1)==0) {
+                selector.wakeup();
+            }
         }
 
         public void cancel(SelectionKey sk, NioSocketWrapper key, int ops){
@@ -332,6 +338,7 @@ public class NioBlockingSelector {
             if ( ch == null ) return;
 
             Runnable r = new RunnableAdd(ch, key, ops, ref);
+            /* 同步插入队列 */
             events.offer(r);
             wakeup();
         }

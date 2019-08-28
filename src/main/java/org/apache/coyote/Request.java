@@ -578,6 +578,7 @@ public final class Request {
      * @throws IOException If an I/O error occurs during the copy
      */
     public int doRead(ApplicationBufferHandler handler) throws IOException {
+        /** 进入 {@link org.apache.coyote.http11.Http11InputBuffer#doRead(ApplicationBufferHandler)} */
         int n = inputBuffer.doRead(handler);
         if (n > 0) {
             bytesRead+=n;

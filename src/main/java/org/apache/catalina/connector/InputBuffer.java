@@ -51,6 +51,7 @@ import org.apache.tomcat.util.res.StringManager;
  *
  * @author Remy Maucherat
  */
+@SuppressWarnings("all")
 public class InputBuffer extends Reader
     implements ByteChunk.ByteInputChannel, ApplicationBufferHandler {
 
@@ -341,10 +342,10 @@ public class InputBuffer extends Reader
         }
 
         try {
+            /** 从 channel 中读取数据 */
             return coyoteRequest.doRead(this);
         } catch (IOException ioe) {
-            // An IOException on a read is almost always due to
-            // the remote client aborting the request.
+            // An IOException on a read is almost always due to  the remote client aborting the request.
             throw new ClientAbortException(ioe);
         }
     }
@@ -355,6 +356,7 @@ public class InputBuffer extends Reader
             throw new IOException(sm.getString("inputBuffer.streamClosed"));
         }
 
+        /** 检查 buffer 是否结束 */
         if (checkByteBufferEof()) {
             return -1;
         }
