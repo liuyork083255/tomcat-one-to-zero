@@ -34,6 +34,7 @@ import org.apache.tomcat.util.res.StringManager;
  * headers (once committed) and the response body. Note that buffering of the
  * response body happens at a higher level.
  */
+@SuppressWarnings("all")
 public class Http11OutputBuffer implements HttpOutputBuffer {
 
     // -------------------------------------------------------------- Variables
@@ -72,6 +73,8 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
 
     /**
      * Active filters for the current request.
+     *
+     * debug 下来，发现里面就只有一个 filter {@link ChunkedOutputFilter}
      */
     protected OutputFilter[] activeFilters;
 
@@ -252,6 +255,7 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
         if (lastActiveFilter == -1) {
             outputStreamOutputBuffer.flush();
         } else {
+            /** 进入 {@link ChunkedOutputFilter#flush()}  */
             activeFilters[lastActiveFilter].flush();
         }
     }

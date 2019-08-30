@@ -1664,6 +1664,14 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                  *
                  *  31的16进制为 49，而 json 长度就是 49
                  *
+                 * -----------------------------------------------------------
+                 *
+                 * 如果响应头协议是 Content-Length
+                 *      HTTP/1.1 200
+                 *      Content-Length: 16
+                 *      Date: Wed, 28 Aug 2019 07:00:15 GMT
+                 *
+                 *      hello world java
                  *
                  */
                 pool.write(from, getSocket(), selector, writeTimeout, block);
