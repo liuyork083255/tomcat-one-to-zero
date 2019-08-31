@@ -33,6 +33,7 @@ import org.apache.catalina.LifecycleState;
 import org.apache.catalina.Service;
 import org.apache.catalina.core.AprLifecycleListener;
 import org.apache.catalina.util.LifecycleMBeanBase;
+import org.apache.coyote.AbstractProtocol;
 import org.apache.coyote.Adapter;
 import org.apache.coyote.ProtocolHandler;
 import org.apache.coyote.UpgradeProtocol;
@@ -994,6 +995,10 @@ public class Connector extends LifecycleMBeanBase  {
         }
 
         try {
+            /**
+             * 这里会启动 endpoint 方法
+             * {@link AbstractProtocol#init()}
+             */
             protocolHandler.init();
         } catch (Exception e) {
             throw new LifecycleException(sm.getString("coyoteConnector.protocolHandlerInitializationFailed"), e);

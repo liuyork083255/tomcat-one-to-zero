@@ -551,6 +551,7 @@ public class Catalina {
         initNaming();
 
         // Create and execute our Digester
+        /* 用于解析 server.xml 文件 */
         Digester digester = createStartDigester();
 
         InputSource inputSource = null;
@@ -639,7 +640,7 @@ public class Catalina {
         try {
             /**
              * server 初始化
-             * {@link StandardServer#init()}
+             * {@link StandardServer#init()}，其实还是调用的{@link StandardServer#initInternal()}
              */
             getServer().init();
         } catch (LifecycleException e) {
@@ -677,6 +678,7 @@ public class Catalina {
      */
     public void start() {
 
+        /* 检查 server 是否已经 load */
         if (getServer() == null) {
             load();
         }
@@ -690,6 +692,9 @@ public class Catalina {
 
         // Start the new server
         try {
+            /**
+             * {@link StandardServer#start()} -> {@link StandardServer#startInternal()}
+             */
             getServer().start();
         } catch (LifecycleException e) {
             log.fatal(sm.getString("catalina.serverStartFail"), e);

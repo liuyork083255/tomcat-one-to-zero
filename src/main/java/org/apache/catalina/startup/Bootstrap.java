@@ -54,6 +54,13 @@ import org.apache.juli.logging.LogFactory;
  * tomcat 本身核心是 server 以及子组件，所以启动可以不依赖 Bootstrap 和 Catalina，tomcat 提供了同名类 {@link Tomcat}
  * spring-boot 就是采用这个方式启动的
  *
+ *
+ * Bootstrap 核心方法就是三个
+ *  {@link #init()}
+ *  {@link #load(String[])}
+ *  {@link #start()}
+ *
+ *
  */
 public final class Bootstrap {
 
@@ -69,6 +76,9 @@ public final class Bootstrap {
 
     private static final Pattern PATH_PATTERN = Pattern.compile("(\".*?\")|(([^,])*)");
 
+    /**
+     * 主要是设置 catalina 的安装目录和工作目录
+     */
     static {
         // Will always be non-null
         String userDir = System.getProperty("user.dir");
@@ -138,6 +148,8 @@ public final class Bootstrap {
      */
     private Object catalinaDaemon = null;
 
+
+    /* tomcat 自定义了三个类加载器 */
 
     ClassLoader commonLoader = null;
     ClassLoader catalinaLoader = null;
@@ -267,6 +279,7 @@ public final class Bootstrap {
         SecurityClassLoad.securityClassLoad(catalinaLoader);
 
         // Load our startup class and call its process() method
+        /** 通过反射加载 catalina 类，然后实例化 */
         Class<?> startupClass = catalinaLoader.loadClass("org.apache.catalina.startup.Catalina");
         Object startupInstance = startupClass.getConstructor().newInstance();
 
@@ -276,6 +289,7 @@ public final class Bootstrap {
         paramTypes[0] = Class.forName("java.lang.ClassLoader");
         Object paramValues[] = new Object[1];
         paramValues[0] = sharedLoader;
+        /** 通过反射执行 {@link Catalina#setParentClassLoader} 方法，设置父类加载器 */
         Method method = startupInstance.getClass().getMethod(methodName, paramTypes);
         method.invoke(startupInstance, paramValues);
 
@@ -305,8 +319,6 @@ public final class Bootstrap {
         }
         /** 调用 {@link Catalina#load()} 无参方法 */
         Method method = catalinaDaemon.getClass().getMethod(methodName, paramTypes);
-        if (log.isDebugEnabled())
-            log.debug("Calling startup class " + method);
         method.invoke(catalinaDaemon, param);
 
     }
@@ -350,6 +362,7 @@ public final class Bootstrap {
         throws Exception {
         if( catalinaDaemon==null ) init();
 
+        /** 调用 {@link Catalina#start()} 无参方法 */
         Method method = catalinaDaemon.getClass().getMethod("start", (Class [] )null);
         method.invoke(catalinaDaemon, (Object [])null);
 

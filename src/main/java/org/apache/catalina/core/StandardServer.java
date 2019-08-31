@@ -767,6 +767,9 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         // Start our defined Services
         synchronized (servicesLock) {
             for (int i = 0; i < services.length; i++) {
+                /**
+                 * {@link StandardService#start()} -> {@link StandardService#startInternal()}
+                 */
                 services[i].start();
             }
         }
@@ -853,6 +856,9 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
          */
         // Initialize our defined Services
         for (int i = 0; i < services.length; i++) {
+            /**
+             * {@link StandardService#init()} -> {@link StandardService#initInternal()}
+             */
             services[i].init();
         }
     }

@@ -918,6 +918,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
         }
 
         // Start our child containers, if any
+        /* 启动子容器 */
         Container children[] = findChildren();
         List<Future<Void>> results = new ArrayList<>();
         for (int i = 0; i < children.length; i++) {
@@ -945,6 +946,9 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
         // Start the Valves in our pipeline (including the basic), if any
         if (pipeline instanceof Lifecycle) {
+            /**
+             * {@link StandardPipeline#start()} -> {@link StandardPipeline#startInternal()}
+             */
             ((Lifecycle) pipeline).start();
         }
 

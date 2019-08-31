@@ -419,19 +419,23 @@ public class StandardService extends LifecycleMBeanBase implements Service {
     @Override
     protected void startInternal() throws LifecycleException {
 
-        if(log.isInfoEnabled())
-            log.info(sm.getString("standardService.start.name", this.name));
         setState(LifecycleState.STARTING);
 
         // Start our defined Container first
         if (engine != null) {
             synchronized (engine) {
+                /**
+                 * {@link StandardEngine#start()} -> {@link StandardEngine#startInternal()}
+                 */
                 engine.start();
             }
         }
 
         synchronized (executors) {
             for (Executor executor: executors) {
+                /**
+                 * {@link StandardThreadExecutor#start()} -> {@link StandardThreadExecutor#startInternal()}
+                 */
                 executor.start();
             }
         }
@@ -444,12 +448,13 @@ public class StandardService extends LifecycleMBeanBase implements Service {
                 try {
                     // If it has already failed, don't try and start it
                     if (connector.getState() != LifecycleState.FAILED) {
+                        /**
+                         * {@link Connector#start()} -> {@link Connector#startInternal()}
+                         */
                         connector.start();
                     }
                 } catch (Exception e) {
-                    log.error(sm.getString(
-                            "standardService.connector.startFailed",
-                            connector), e);
+                    log.error(sm.getString("standardService.connector.startFailed", connector), e);
                 }
             }
         }
@@ -537,11 +542,23 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
         super.initInternal();
 
+        /**
+         * 初始化 engine
+         */
         if (engine != null) {
+            /**
+             * {@link StandardEngine#init()} -> {@link StandardEngine#initInternal()}
+             * 需要注意：
+             *  初始化只有第一个容器 engine，
+             *  而 host context wrapper 三个容器不是在 init 被初始化的，而是在 start 过程中被初始化
+             */
             engine.init();
         }
 
         // Initialize any Executors
+        /**
+         * 初始化线程池
+         */
         for (Executor executor : findExecutors()) {
             if (executor instanceof JmxEnabled) {
                 ((JmxEnabled) executor).setDomain(getDomain());
@@ -550,6 +567,9 @@ public class StandardService extends LifecycleMBeanBase implements Service {
         }
 
         // Initialize mapper listener
+        /**
+         * 初始化 mapper 映射器监听器
+         */
         mapperListener.init();
 
         // Initialize our defined Connectors
@@ -559,6 +579,9 @@ public class StandardService extends LifecycleMBeanBase implements Service {
              */
             for (Connector connector : connectors) {
                 try {
+                    /**
+                     * {@link Connector#init()} -> {@link Connector#initInternal()}
+                     */
                     connector.init();
                 } catch (Exception e) {
                     String message = sm.getString("standardService.connector.initFailed", connector);

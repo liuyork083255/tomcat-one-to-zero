@@ -98,6 +98,10 @@ public abstract class LifecycleBase implements Lifecycle {
     }
 
 
+    /**
+     * 声明周期方法，这里只是做一些共有操作，具体操作还是调用子类 initInternal 方法
+     * @throws LifecycleException
+     */
     @Override
     public final synchronized void init() throws LifecycleException {
         if (!state.equals(LifecycleState.NEW)) {
@@ -115,8 +119,7 @@ public abstract class LifecycleBase implements Lifecycle {
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);
             setStateInternal(LifecycleState.FAILED, null, false);
-            throw new LifecycleException(
-                    sm.getString("lifecycleBase.initFail",toString()), t);
+            throw new LifecycleException(sm.getString("lifecycleBase.initFail",toString()), t);
         }
     }
 
