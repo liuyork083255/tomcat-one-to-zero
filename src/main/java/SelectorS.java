@@ -20,16 +20,18 @@ import java.nio.channels.SelectionKey;
  *          此方法会消耗 wakeup 作用
  *      {@link Selector#select()}
  *          阻塞式等待 IO 事件发生
- *          阻塞中的线程被唤醒有三种情况：
+ *          阻塞中的线程被唤醒有四种情况：
  *              1 发生了 IO 事件
  *              2 调用了 wakeup 方法
  *              3 线程设置了中断信号
+ *              4 调用 close 方法，但是会导致在 .select 方法出抛出异常
  *      {@link Selector#select(long)}
  *          阻塞指定时间等待 IO 事件发生
- *          阻塞中的线程被唤醒有三种情况：
+ *          阻塞中的线程被唤醒有四种情况：
  *              1 发生了 IO 事件
  *              2 调用了 wakeup 方法
  *              3 线程设置了中断信号
+ *              4 调用 close 方法，但是会导致在 .select 方法出抛出异常
  *      {@link Selector#wakeup()}
  *          selector 会在调用 select 方法阻塞，如果需要唤醒，则调用 wakeup 方法
  *          如果线程已经阻塞，则效果是立马返回；

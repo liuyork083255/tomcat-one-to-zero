@@ -1348,12 +1348,16 @@ public abstract class AbstractEndpoint<S> {
      */
     protected void countUpOrAwaitConnection() throws InterruptedException {
         /* maxConnections 等于 -1，不做限制 */
-        if (maxConnections==-1) return;
+        if (maxConnections==-1) {
+            return;
+        }
 
         LimitLatch latch = connectionLimitLatch;
 
         /* 并发计数器加1，如果超过了阈值，则阻塞等待 */
-        if (latch!=null) latch.countUpOrAwait();
+        if (latch!=null) {
+            latch.countUpOrAwait();
+        }
     }
 
     /**
