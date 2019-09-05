@@ -174,8 +174,12 @@ public class StandardPipeline extends LifecycleBase
             current = basic;
         }
         while (current != null) {
-            if (current instanceof Lifecycle)
+            if (current instanceof Lifecycle) {
+                /**
+                 * 启动四种 Valve
+                 */
                 ((Lifecycle) current).start();
+            }
             current = current.getNext();
         }
 
