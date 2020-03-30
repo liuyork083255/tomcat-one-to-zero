@@ -17,26 +17,24 @@
 
 package org.apache.catalina.util;
 
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.apache.catalina.Lifecycle;
-import org.apache.catalina.LifecycleEvent;
-import org.apache.catalina.LifecycleException;
-import org.apache.catalina.LifecycleListener;
-import org.apache.catalina.LifecycleState;
-import org.apache.catalina.core.StandardServer;
-import org.apache.catalina.core.StandardService;
+import org.apache.catalina.*;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.res.StringManager;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 
 /**
  * Base implementation of the {@link Lifecycle} interface that implements the
  * state transition rules for {@link Lifecycle#start()} and
  * {@link Lifecycle#stop()}
+ *
+ * 统一管理调用 init start stop destroy 等生命周期方法，典型的模板设计模式
+ *
+ *
  */
 public abstract class LifecycleBase implements Lifecycle {
 
@@ -111,8 +109,12 @@ public abstract class LifecycleBase implements Lifecycle {
         try {
             setStateInternal(LifecycleState.INITIALIZING, null, false);
             /**
-             * {@link StandardServer#initInternal()}
-             * {@link StandardService#initInternal()}
+             * {@link org.apache.catalina.core.StandardServer#initInternal()}
+             * {@link org.apache.catalina.core.StandardService#initInternal()}
+             * {@link org.apache.catalina.core.StandardEngine#initInternal()}
+             * {@link org.apache.catalina.core.StandardHost#initInternal()}
+             * {@link org.apache.catalina.core.StandardContext#initInternal()}
+             * {@link org.apache.catalina.core.StandardWrapper#initInternal()}
              */
             initInternal();
             setStateInternal(LifecycleState.INITIALIZED, null, false);
@@ -145,7 +147,7 @@ public abstract class LifecycleBase implements Lifecycle {
             return;
         }
 
-        if (state.equals(LifecycleState.NEW)) {
+        if (state.equals(LifecycleState.NEW)) { /* 防止组件还没有调用组件的 init 就调用 start 方法 */
             init();
         } else if (state.equals(LifecycleState.FAILED)) {
             stop();

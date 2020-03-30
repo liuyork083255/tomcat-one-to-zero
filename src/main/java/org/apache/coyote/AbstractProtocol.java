@@ -86,6 +86,8 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
      * Endpoint that provides low-level network I/O - must be matched to the
      * ProtocolHandler implementation (ProtocolHandler using NIO, requires NIO
      * Endpoint etc.).
+     *
+     * 每一个 protocol 会对应一个 endpoint，常见的是 {@link org.apache.tomcat.util.net.NioEndpoint}
      */
     private final AbstractEndpoint<S> endpoint;
 
@@ -582,6 +584,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
         /**
          * 核心逻辑
          * 启动 endpoint 端点，acceptor poller worker 线程开始运行
+         * 每个protocol都有一个对应的enpoint，最终是由endpoint来负责处理链接的
          */
         endpoint.init();
     }
@@ -593,6 +596,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
             getLog().info(sm.getString("abstractProtocolHandler.start", getName()));
         }
 
+        /* 每个protocol都有一个对应的enpoint，最终是由endpoint来负责处理链接的 */
         endpoint.start();
 
         // Start async timeout thread
@@ -614,6 +618,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
             getLog().info(sm.getString("abstractProtocolHandler.pause", getName()));
         }
 
+        /* 每个protocol都有一个对应的enpoint，最终是由endpoint来负责处理链接的 */
         endpoint.pause();
     }
 

@@ -328,6 +328,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                 createExecutor();
             }
 
+            /* 初始化最大连接数限制，在server.xml中可配置 */
             initializeConnectionLatch();
 
             /* 创建 poller 线程组，然后逐一启动线程 */
@@ -1818,8 +1819,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
      * external Executor thread pool.
      *
      * otz:
-     *  SocketProcessor 相当于就是 worker，其运行的线程就是 executor 线程池，也就是常见的 http-nio-8080-exec-1 线程
+     *  连接接入从 acceptor -> poller，然后 poller 将连接封装成 {@link NioSocketWrapper}，并且丢给 这个类 处理
+     *  而 这个类处理则是由线程池 executor 执行，也就是 http-nio-8080-exec-1 线程
      *
+     * 可以简单理解成这个类就是一个提交到 executor 中的 task，然后调用 protocol 的 {@link org.apache.coyote.AbstractProtocol.ConnectionHandler#process}
      */
     protected class SocketProcessor extends SocketProcessorBase<NioChannel> {
 

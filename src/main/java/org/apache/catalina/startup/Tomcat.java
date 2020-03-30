@@ -145,8 +145,10 @@ import org.apache.tomcat.util.res.StringManager;
  * @author Costin Manolache
  *
  * otz:
- *  Tomcat 可以将 tomcat 服务器嵌入到用户应用程序中并进行启动
+ *  Tomcat 可以将 tomcat 服务器嵌入到用户应用程序中并进行启动，参考: TomcatServletWebServerFactory
  *  spring-boot 采用这个类启动
+ *
+ *  这个类可以单独设置 server、service、engine、host、context、wrapper(添加、设置 servlet 就是 wrapper，它们是一对一关系)
  *
  */
 public class Tomcat {
@@ -164,6 +166,7 @@ public class Tomcat {
 
     protected int port = 8080;
     protected String hostname = "localhost";
+    /** tomcat 启动需要保存一些临时文件，springboot 启动的时候设置一个临时目录 */
     protected String basedir;
     protected boolean defaultConnectorCreated = false;
 
@@ -348,6 +351,8 @@ public class Tomcat {
      * @param servletName   Servlet name (used in mappings)
      * @param servletClass  The class to be used for the Servlet
      * @return The wrapper for the servlet
+     *
+     * 这四个 addServlet 方法是用于添加 servlet，但是 spring-boot 并不是通过调用这四个方法来添加的
      */
     public Wrapper addServlet(String contextPath,
             String servletName,
@@ -362,6 +367,8 @@ public class Tomcat {
      * @param servletName   Servlet name (used in mappings)
      * @param servletClass  The class to be used for the Servlet
      * @return The wrapper for the servlet
+     *
+     * 这四个 addServlet 方法是用于添加 servlet，但是 spring-boot 并不是通过调用这四个方法来添加的
      */
     public static Wrapper addServlet(Context ctx,
                                       String servletName,
@@ -382,6 +389,8 @@ public class Tomcat {
      * @param servletName   Servlet name (used in mappings)
      * @param servlet       The Servlet to add
      * @return The wrapper for the servlet
+     *
+     * 这四个 addServlet 方法是用于添加 servlet，但是 spring-boot 并不是通过调用这四个方法来添加的
      */
     public Wrapper addServlet(String contextPath,
             String servletName,
@@ -396,6 +405,8 @@ public class Tomcat {
      * @param servletName   Servlet name (used in mappings)
      * @param servlet       The Servlet to add
      * @return The wrapper for the servlet
+     *
+     * 这四个 addServlet 方法是用于添加 servlet，但是 spring-boot 并不是通过调用这四个方法来添加的
      */
     public static Wrapper addServlet(Context ctx,
                                       String servletName,
@@ -696,6 +707,8 @@ public class Tomcat {
      * @param config Custom context configurator helper
      * @return the deployed context
      * @see #addWebapp(String, String)
+     *
+     * 如果部署的项目是在一个类似 webapps 目录结构，则可以通过这个方法添加进来
      */
     public Context addWebapp(Host host, String contextPath, String docBase,
             LifecycleListener config) {

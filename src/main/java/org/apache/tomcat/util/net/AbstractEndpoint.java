@@ -817,6 +817,7 @@ public abstract class AbstractEndpoint<S> {
 
     /**
      * Handling of accepted sockets.
+     * 默认是 {@link org.apache.coyote.AbstractProtocol.ConnectionHandler}
      */
     private Handler<S> handler = null;
     public void setHandler(Handler<S> handler ) { this.handler = handler; }

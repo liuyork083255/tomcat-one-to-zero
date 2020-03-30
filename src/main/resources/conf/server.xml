@@ -20,16 +20,16 @@
      Documentation at /docs/config/server.html
  -->
 <Server port="8005" shutdown="SHUTDOWN">
-  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" /> <!-- 在 server 初始化前打印操作系统、jvm以及服务器相关信息 -->
   <!-- Security listener. Documentation at /docs/config/listeners.html
   <Listener className="org.apache.catalina.security.SecurityListener" />
   -->
   <!--APR library loader. Documentation at /docs/apr.html -->
-  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" /> <!-- 在 server 初始化前加载 apr 库 -->
   <!-- Prevent memory leaks due to use of particular java/javax APIs-->
-  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
-  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
-  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" /><!-- 在 server 初始化前，已解决单例对象创建导致 jvm 内存泄漏问题以及锁文件问题 -->
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" /><!-- 在 server 启动时，将 jndi 资源注册为 MBean 进行管理 -->
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" /><!-- 用于在 context 停止时重建 executor池中的线程，避免导致内存泄漏 -->
 
   <!-- Global JNDI resources
        Documentation at /docs/jndi-resources-howto.html

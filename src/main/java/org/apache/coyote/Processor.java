@@ -27,9 +27,14 @@ import org.apache.tomcat.util.net.SocketWrapperBase;
 /**
  * Common interface for processors of all protocols.
  *
+ * 职责:协议解析，不同的协议对应不同的 processor
  * otz:
  *  属于 connector 部分，请求接入后首先到 Endpoint 组件，然后就会调用 Processor
- *  Processor 主要根据自己具体实现的协议来解析请求，然后映射到后面对应的 container
+ *  Processor 主要根据自己具体实现的协议来解析请求，
+ *  比如是http协议，就会解析 请求行、请求头等，解析完成功能后负责构造 request 和 response 对象，
+ *  然后通过 Adapter 将请求往后传递，参考{@link org.apache.coyote.http11.Http11Processor#service}
+ *  所以 processor 必然会持有 adapter 对象 {@link AbstractProcessor#adapter}
+ *
  *
  *  Processor 如何映射到 container？ -> {@link org.apache.catalina.mapper.Mapper}
  *
@@ -37,6 +42,7 @@ import org.apache.tomcat.util.net.SocketWrapperBase;
  *  {@link org.apache.coyote.http11.Http11Processor} HTTP/1.1
  *  {@link org.apache.coyote.ajp.AjpProcessor}  AJP
  *  {@link org.apache.coyote.http2.StreamProcessor} HTTP/2.0
+ *
  */
 public interface Processor {
 

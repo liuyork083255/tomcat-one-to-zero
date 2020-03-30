@@ -75,6 +75,9 @@ import org.xml.sax.SAXParseException;
  *   启动 web 服务其实只需要启动 server 即可
  *   tomcat 通过 digester 解析 xml 文件，包括 server.xml 以及 web.xml
  *
+ * Catalina 可以理解就是整个 container，就是整个 engine
+ *  connector <-----> container
+ *  coyote    <-----> catalina
  *
  */
 public class Catalina {
@@ -109,6 +112,8 @@ public class Catalina {
 
     /**
      * The server component we are starting or stopping.
+     *
+     * 默认是 {@link org.apache.catalina.core.StandardServer}
      */
     protected Server server = null;
 

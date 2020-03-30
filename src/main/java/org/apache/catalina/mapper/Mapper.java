@@ -31,6 +31,8 @@ import org.apache.catalina.WebResource;
 import org.apache.catalina.WebResourceRoot;
 import org.apache.catalina.Wrapper;
 import org.apache.catalina.servlet4preview.http.MappingMatch;
+import org.apache.coyote.Request;
+import org.apache.coyote.Response;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.buf.Ascii;
@@ -45,7 +47,7 @@ import org.apache.tomcat.util.res.StringManager;
  * @author Remy Maucherat
  *
  * otz:
- *  首先需要知道，Processor 组件功能是处理请求然后映射到 container 中
+ *  首先需要知道，Processor 组件功能是协议处理器，并构造 request 和 response 对象，然后映射到 container 中
  *  那么 Mapper 就是完成+维护这个映射关系的
  *  具体的是 Mapper 和 MapperListener 结合完成
  *  Mapper：用于维护 container 容器映射信息的，同时按照映射规则（Servlet规范定义）查找容器
@@ -53,6 +55,7 @@ import org.apache.tomcat.util.res.StringManager;
  *      比如一个 context 部署到 tomcat 中，那么该监听器就会触发更新 mapper 映射关系
  *
  *
+ * 请求映射主要两部分，一部分位于 {@link org.apache.catalina.connector.CoyoteAdapter#postParseRequest}，第二部分位于 {@link #map}
  *
  *
  * 在 tomcat7 及之前，Mapper 有 connector 维护，而在 tomcat8 中，改由 service 维护

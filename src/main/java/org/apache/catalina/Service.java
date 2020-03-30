@@ -39,6 +39,10 @@ import org.apache.catalina.mapper.Mapper;
  *  一个 service 包含多个 connector 和一个 container
  *  也就是 service 会负责将多个 connector 的请求映射到一个 container
  *
+ *  Service 是在 Connector 和 Container 外面多包一层，把它们组装在一起，向外面提供服务，一个 Service 可以设置多个 Connector，但是只能有一个 Container 容器
+ *
+ *
+ *
  */
 public interface Service extends Lifecycle {
 

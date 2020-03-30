@@ -228,13 +228,16 @@ public class Connector extends LifecycleMBeanBase  {
     /**
      * Coyote Protocol handler class name.
      * Defaults to the Coyote HTTP/1.1 protocolHandler.
+     *
+     * 默认协议 protocol 名称
      */
-    protected String protocolHandlerClassName =
-        "org.apache.coyote.http11.Http11NioProtocol";
+    protected String protocolHandlerClassName = "org.apache.coyote.http11.Http11NioProtocol";
 
 
     /**
      * Coyote protocol handler.
+     *
+     * 具体的 protocol 处理器
      */
     protected final ProtocolHandler protocolHandler;
 
@@ -582,10 +585,14 @@ public class Connector extends LifecycleMBeanBase  {
      *
      * @deprecated Will be removed in Tomcat 9. Protocol must be configured via
      *             the constructor
+     *
+     * 在 tomcat9 中该方法移除，直接放置构造方法中设置的
+     *
      */
     @Deprecated
     public void setProtocol(String protocol) {
 
+        /* 判断环境中是否有 apr 依赖库 */
         boolean aprConnector = AprLifecycleListener.isAprAvailable() &&
                 AprLifecycleListener.getUseAprConnector();
 
@@ -602,6 +609,7 @@ public class Connector extends LifecycleMBeanBase  {
                 setProtocolHandlerClassName("org.apache.coyote.ajp.AjpNioProtocol");
             }
         } else {
+            /* 没有匹配上，则采用用户提供的全路径类名 */
             setProtocolHandlerClassName(protocol);
         }
     }
@@ -1010,6 +1018,8 @@ public class Connector extends LifecycleMBeanBase  {
      * Begin processing requests via this Connector.
      *
      * @exception LifecycleException if a fatal startup error occurs
+     *
+     * 启动 protocol
      */
     @Override
     protected void startInternal() throws LifecycleException {

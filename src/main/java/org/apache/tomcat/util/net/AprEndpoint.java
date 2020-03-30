@@ -73,6 +73,17 @@ import org.apache.tomcat.util.net.openssl.OpenSSLUtil;
  *
  * @author Mladen Turk
  * @author Remy Maucherat
+ *
+ *
+ *
+ * APR，全称Apache Portable Runtime，使用 native server 为Tomcat提供更好的伸缩性、更高的性能以及更强的集成能力。
+ * APR还是Apache HTTP Server2.x中的核心轻量级库，它可以提供更好的IO功能(如sendfile,epoll和OpenSSL)、OS功能和本地线程管理（共享内存、NT管道和UNIX套接字）。
+ *  这些都可以使Tomcat变得更通用、更易扩展。
+ *
+ * APR运行需要以下3个组件：APR Library、JNI Wapper for APR和OpenSSL Libary。如果以上功能已经安装，Tomcat在启动时会自动使用APR Connector。
+ *
+ * 也就是如果服务器安装了这些依赖库，那么 tomcat 会使用 apr 模式，性能会提高一些
+ *
  */
 public class AprEndpoint extends AbstractEndpoint<Long> implements SNICallBack {
 

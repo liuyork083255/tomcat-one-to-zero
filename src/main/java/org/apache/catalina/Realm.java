@@ -34,6 +34,12 @@ import org.ietf.jgss.GSSContext;
  * Container.
  *
  * @author Craig R. McClanahan
+ *
+ * otz:
+ *  tomcat 是一个 web 服务，可以部署很多应用，
+ *  realm 是用于控制用户访问这些应用权限方案设计
+ *  参考: https://blog.csdn.net/u013915688/article/details/79369810
+ *
  */
 public interface Realm {
 

@@ -654,6 +654,11 @@ public class Http11Processor extends AbstractProcessor {
     }
 
 
+    /**
+     * processor 的职责就是根据自己的的 processor 类型，按执行的协议解析请求，
+     * 然后调用 Adaptor 往传递
+     *
+     */
     @Override
     public SocketState service(SocketWrapperBase<?> socketWrapper) throws IOException {
         RequestInfo rp = request.getRequestProcessor();

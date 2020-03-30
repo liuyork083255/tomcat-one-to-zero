@@ -53,6 +53,9 @@ import org.apache.tomcat.util.net.jsse.JSSESupport;
 
 /**
  * NIO2 endpoint.
+ *
+ * 先理解为是 异步IO，和 Nio 区别是采用的 jdk7 中的 nio2 实现的
+ * 而 nio 则是采用的 jdk nio 实现
  */
 public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel> {
 

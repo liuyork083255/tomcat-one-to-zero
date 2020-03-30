@@ -79,6 +79,11 @@ package org.apache.catalina;
  * attempted transition is not valid.
  *
  * @author Craig R. McClanahan
+ *
+ * otz:
+ *  容器组件，核心组件都会继承 Lifecycle，tomcat 统一管理其生命周期，并且统一管理他们的顺序 init、start、stop 的之间的顺序
+ *
+ * 直接继承 {@link org.apache.catalina.util.LifecycleBase}
  */
 public interface Lifecycle {
 

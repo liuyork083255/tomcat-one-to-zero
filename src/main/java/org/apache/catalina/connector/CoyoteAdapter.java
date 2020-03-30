@@ -64,6 +64,7 @@ import org.apache.tomcat.util.res.StringManager;
  * otz:
  *  CoyoteAdapter 主要是将 connector 与 mapper 、 container 联系起来
  *
+ * Adapter 适配器作用是将请求适配到Servlet容器进行具体的处理，可以理解为 connector 和 container 的桥梁
  */
 @SuppressWarnings("all")
 public class CoyoteAdapter implements Adapter {
@@ -301,6 +302,7 @@ public class CoyoteAdapter implements Adapter {
     }
 
     /**
+     * 当 Connector 接收到请求后，首先是读取数据，然后调用 CoyoteAdapter.service 完成请求处理
      * 1 根据 connector 的请求和响应对象创建 servlet 请求和响应
      *   org.apache.coyote.Request -> org.apache.catalina.connector.Request
      *   org.apache.coyote.Response -> org.apache.catalina.connector.Response
@@ -630,6 +632,9 @@ public class CoyoteAdapter implements Adapter {
      *                     processing headers
      * @throws ServletException If the supported methods of the target servlet
      *                          cannot be determined
+     *
+     * otz:
+     *  请求映射
      */
     protected boolean postParseRequest(org.apache.coyote.Request req, Request request,
             org.apache.coyote.Response res, Response response) throws IOException, ServletException {
